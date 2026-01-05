@@ -1,2 +1,92 @@
 package config
 
+import (
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/spf13/viper"
+	"github.com/go-playground/validator/v10"
+	
+)
+
+type (
+	Config struct {
+		Server   	*Server   	`mapstructure:"server" validate:"required"`
+		OAuth2   	*OAuth2   	`mapstructure:"oauth2" validate:"required"`
+		State   	*State   	`mapstructure:"state" validate:"required"`
+		Database 	*Database 	`mapstructure:"database" validate:"required"`
+	}
+
+	Server struct {
+		Port           	int      		`mapstructure:"port" validate:"required"`
+		AllowedOrigins 	[]string 		`mapstructure:"allowOrigins" validate:"required"`
+		BodyLimit		string			`mapstructure:"bodyLimit" validate:"required"`
+		TimeOut        	time.Duration  	`mapstructure:"timeount" validate:"required"`
+		
+	}
+
+	OAuth2 struct {
+		ClientID     	string 		`mapstructure:"clientId" validate:"required"`
+		ClientSecret 	string 		`mapstructure:"clientSecret" validate:"required"`
+		RedirectURL  	string 		`mapstructure:"redirectUrl" validate:"required"`
+		EndPoints		endpoint 	`mapstructure:"endpoints" validate:"required"`
+		Scopes			[]string	`mapstructure:"scopes" validate:"required"`
+		UserInfoUrl		string 		`mapstructure:"userInfoUrl" validate:"required"`
+		revokeUrl		string 		`mapstructure:"revokeUrl" validate:"required"`
+	}
+
+	endpoint struct {
+		AuthUrl     	string 		`mapstructure:"authUrl" validate:"required"`
+		TokenUrl 		string 		`mapstructure:"tokenUrl" validate:"required"`
+		DeviceAuthUrl  	string 		`mapstructure:"deviceAuthUrl" validate:"required"`
+	}
+
+	State    struct{
+		Secret     		string 				`mapstructure:"secret" validate:"required"`
+		ExpiredsAt 		time.Duration 		`mapstructure:"expiredsAt" validate:"required"`
+		Issuer  		string 				`mapstructure:"issuer" validate:"required"`
+	}
+
+	Database struct {
+		Host     		string 		`mapstructure:"host" validate:"required"`
+		Port     		int    		`mapstructure:"port" validate:"required"`
+		User     		string 		`mapstructure:"user" validate:"required"`
+		Password 		string 		`mapstructure:"password" validate:"required"`
+		DBname   		string 		`mapstructure:"dbname" validate:"required"`
+		SSLmode   		string 		`mapstructure:"sslmode" validate:"required"`
+		Schema   		string 		`mapstructure:"schema" validate:"required"`
+	}
+)
+
+var (
+	once 				sync.Once  //Singleton 
+	configInstance 		*Config
+)
+
+func ConfigGetting() *Config {
+	once.Do(func() {
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath("./config")
+		viper.AutomaticEnv()
+		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+		if err := viper.ReadInConfig(); err != nil {
+			panic(err)
+		}
+
+		if err := viper.Unmarshal(&configInstance); err != nil {
+			panic(err)
+		}
+
+		validating := validator.New()
+
+		if err := validating.Struct(configInstance); err != nil {
+			panic(err)
+		}
+
+	})
+
+	return  configInstance
+}
