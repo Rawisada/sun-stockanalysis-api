@@ -3,7 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
-	"project-go-basic/config"
+	"sun-stockanalysis-api/config"
 	"sync"
 
 	"gorm.io/driver/postgres"
@@ -19,30 +19,25 @@ var (
 	once						sync.Once				
 )
 
+func (p *postgresDatabase) ConnectionGetting() *gorm.DB {
+	return p.DB
+}
+
 func NewPostgresDatabase(conf *config.Database) Database {
-	once.Do(func ()  {
+	once.Do(func() {
 		dsn := fmt.Sprintf(
 			"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s search_path=%s",
-			conf.Host,
-			conf.Port,
-			conf.User,
-			conf.Password,
-			conf.DBname,
-			conf.SSLmode,
-			conf.Schema,
-
-
+			conf.Host, conf.Port, conf.User, conf.Password, conf.DBname, conf.SSLmode, conf.Schema,
 		)
 
 		conn, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 		if err != nil {
 			panic(err)
 		}
-		
-		log.Printf("Connected to database %s", conf.DBname)
 
+		log.Printf("Connected to database %s", conf.DBname)
 		postgreDatebaseInstance = &postgresDatabase{conn}
 	})
 
-	return  nil
+	return postgreDatebaseInstance
 }

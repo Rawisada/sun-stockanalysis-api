@@ -1,8 +1,10 @@
 package stock
 
-import stock "project-go-basic/internal/domain/stock" 
+import domain "sun-stockanalysis-api/internal/domain/stock"
+
+import "github.com/google/uuid"
 
 type StockService interface {
-	GetStock(id uint) (*stock.Stock, error)
-	CreateStock(symbol, name, market string) error
+	GetStock(id uuid.UUID) (*domain.Stock, error)
+	CreateStock(symbol, name, sector string, price int) error
 }

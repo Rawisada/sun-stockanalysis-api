@@ -3,7 +3,7 @@ server:
   allowOrigins:
     - "*"
   bodyLimit: "10M" # MiB
-  timeout: 30 # Seconds
+  timeout: "30s"
  
 oauth2:
   redirectUrl: "http://localhost:8080/v1/oauth2/google/player/login/callback"
@@ -22,7 +22,7 @@ oauth2:
 state:
   secret: "xxxxx"
   expiredsAt: 120 #second
-  issuer: "project-go-basic"
+  issuer: "sun-stockanalysis-api"
 
 database:
   host: localhost
@@ -31,4 +31,4 @@ database:
   password: root
   dbname: postgres
   sslmode: disable
-  schema: public
+  schema: stock

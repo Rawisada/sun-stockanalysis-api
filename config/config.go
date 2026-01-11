@@ -22,7 +22,7 @@ type (
 		Port           	int      		`mapstructure:"port" validate:"required"`
 		AllowedOrigins 	[]string 		`mapstructure:"allowOrigins" validate:"required"`
 		BodyLimit		string			`mapstructure:"bodyLimit" validate:"required"`
-		TimeOut        	time.Duration  	`mapstructure:"timeount" validate:"required"`
+		TimeOut        	time.Duration  	`mapstructure:"timeout" validate:"required"`
 		
 	}
 
@@ -69,23 +69,24 @@ func ConfigGetting() *Config {
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath("./config")
-		viper.AutomaticEnv()
+		viper.AddConfigPath(".")
 		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+		viper.AutomaticEnv()
 
 		if err := viper.ReadInConfig(); err != nil {
 			panic(err)
 		}
 
-		if err := viper.Unmarshal(&configInstance); err != nil {
+		var cfg Config
+		if err := viper.Unmarshal(&cfg); err != nil {
 			panic(err)
 		}
 
-		validating := validator.New()
-
-		if err := validating.Struct(configInstance); err != nil {
+		if err := validator.New().Struct(&cfg); err != nil {
 			panic(err)
 		}
 
+		configInstance = &cfg
 	})
 
 	return  configInstance

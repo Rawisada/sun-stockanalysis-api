@@ -1,6 +1,8 @@
 package stock
 
+import "github.com/google/uuid"
+
 type StockRepository interface {
-	FindByID(id uint) (*Stock, error)
+	FindByID(id uuid.UUID) (*Stock, error)
 	Create(stock *Stock) error
 }
