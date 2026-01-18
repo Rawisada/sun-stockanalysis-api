@@ -1,101 +1,65 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/danielgtaylor/huma/v2/adapters/humafiber"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/google/uuid"
 
 	"sun-stockanalysis-api/internal/controllers"
 )
 
-const (
-	apiBasePath = "/v1"
-	stocksTag   = "stocks"
-)
+const apiBasePath = "/v1"
 
-func v1Tags(additionalTags ...string) []string {
-	tags := []string{"PosClient", "v1"}
-	tags = append(tags, additionalTags...)
-	return tags
+func v1Tags() []string {
+	return []string{"v1"}
 }
 
+func RegisterRoutes(rootApi huma.API, controllers *controllers.Controllers) {
+	rootApi.UseMiddleware(requestIDMiddleware)
 
+	registerHealthHandlers(rootApi, controllers)
+	v1Api := huma.NewGroup(rootApi, apiBasePath)
 
-type healthResponse struct {
-	Body struct {
-		Status string `json:"status"`
-	}
+	registerV1(v1Api, controllers)
 }
 
-func RegisterRoutes(app *fiber.App, stockController *controllers.StockController) huma.API {
-	app.Use(recover.New())
-	app.Use(logger.New())
-
-	cfg := huma.DefaultConfig("sun-stockanalysis-api", "1.0.0")
-	cfg.DocsPath = ""
-	api := humafiber.New(app, cfg)
-
-	app.Get("/docs", func(c *fiber.Ctx) error {
-		c.Set("Content-Type", "text/html; charset=utf-8")
-		return c.SendString(swaggerHTML)
-	})
+func registerHealthHandlers(api huma.API, controllers *controllers.Controllers) {
+	tags := []string{"Health Check"}
 
 	huma.Register(api, huma.Operation{
-		Method:  http.MethodGet,
-		Path:    "/health",
-		Summary: "Health check",
-		Tags:    []string{"system"},
-	}, func(ctx context.Context, input *struct{}) (*healthResponse, error) {
-		_ = ctx
-		_ = input
-
-		var res healthResponse
-		res.Body.Status = "ok"
-		return &res, nil
-	})
+		Path:   "/healthz",
+		Method: http.MethodGet,
+		Tags:   tags,
+	}, controllers.HealthController.Healthz)
 
 	huma.Register(api, huma.Operation{
+		Path:   "/readyz",
+		Method: http.MethodGet,
+		Tags:   tags,
+	}, controllers.HealthController.Readyz)
+}
+
+func registerV1(api huma.API, controllers *controllers.Controllers) {
+	huma.Register(api, huma.Operation{
 		Method:  http.MethodGet,
-		Path:    apiBasePath + "/stocks/{id}",
+		Path:    "/stocks/{id}",
 		Summary: "Get stock by ID",
-		Tags:    []string{stocksTag},
-	}, stockController.GetStock)
+		Tags:    v1Tags(),
+	}, controllers.StockController.GetStock)
 
 	huma.Register(api, huma.Operation{
 		Method:        http.MethodPost,
-		Path:          apiBasePath + "/stocks",
+		Path:          "/stocks",
 		Summary:       "Create stock",
-		Tags:          []string{stocksTag},
+		Tags:          v1Tags(),
 		DefaultStatus: http.StatusCreated,
-	}, stockController.CreateStock)
-
-	return api
+	}, controllers.StockController.CreateStock)
 }
 
-const swaggerHTML = `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>API Docs</title>
-    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
-  </head>
-  <body>
-    <div id="swagger-ui"></div>
-    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-    <script>
-      window.onload = function () {
-        window.ui = SwaggerUIBundle({
-          url: "/openapi.json",
-          dom_id: "#swagger-ui",
-        });
-      };
-    </script>
-  </body>
-</html>
-`
+func requestIDMiddleware(ctx huma.Context, next func(huma.Context)) {
+	if ctx.Header("X-Request-Id") == "" {
+		ctx.SetHeader("X-Request-Id", uuid.NewString())
+	}
+	next(ctx)
+}

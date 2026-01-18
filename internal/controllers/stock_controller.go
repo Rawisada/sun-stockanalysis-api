@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"context"
+	"net/http"
 
-	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
 
 	"sun-stockanalysis-api/internal/domains/stock"
@@ -23,7 +23,8 @@ type GetStockInput struct {
 }
 
 type StockResponse struct {
-	Body *models.Stock
+	Status int `status:"default"`
+	Body   DataResponse[*models.Stock]
 }
 
 func (c *StockController) GetStock(ctx context.Context, input *GetStockInput) (*StockResponse, error) {
@@ -31,15 +32,24 @@ func (c *StockController) GetStock(ctx context.Context, input *GetStockInput) (*
 
 	id, err := uuid.Parse(input.ID)
 	if err != nil {
-		return nil, huma.Error400BadRequest("invalid uuid")
+		return &StockResponse{
+			Status: http.StatusBadRequest,
+			Body:   NewDataResponse[*models.Stock](InvalidStatus("invalid uuid"), nil),
+		}, nil
 	}
 
 	s, err := c.stockService.GetStock(id)
 	if err != nil {
-		return nil, huma.Error404NotFound(err.Error())
+		return &StockResponse{
+			Status: http.StatusNotFound,
+			Body:   NewDataResponse[*models.Stock](NewStatus("404", err.Error(), nil), nil),
+		}, nil
 	}
 
-	return &StockResponse{Body: s}, nil
+	return &StockResponse{
+		Status: http.StatusOK,
+		Body:   NewDataResponse(SuccessStatus(), s),
+	}, nil
 }
 
 type CreateStockInput struct {
@@ -52,16 +62,18 @@ type CreateStockInput struct {
 }
 
 type StatusResponse struct {
-	Body struct {
-		Status string `json:"status"`
-	}
+	Status int `status:"default"`
+	Body   DataResponse[any]
 }
 
 func (c *StockController) CreateStock(ctx context.Context, input *CreateStockInput) (*StatusResponse, error) {
 	_ = ctx
 
 	if input.Body.Symbol == "" || input.Body.Name == "" {
-		return nil, huma.Error400BadRequest("symbol and name required")
+		return &StatusResponse{
+			Status: http.StatusBadRequest,
+			Body:   NewDataResponse[any](InvalidStatus("symbol and name required"), nil),
+		}, nil
 	}
 
 	if err := c.stockService.CreateStock(
@@ -70,10 +82,14 @@ func (c *StockController) CreateStock(ctx context.Context, input *CreateStockInp
 		input.Body.Sector,
 		input.Body.Price,
 	); err != nil {
-		return nil, huma.Error500InternalServerError(err.Error())
+		return &StatusResponse{
+			Status: http.StatusInternalServerError,
+			Body:   NewDataResponse[any](NewStatus("500", err.Error(), nil), nil),
+		}, nil
 	}
 
-	var res StatusResponse
-	res.Body.Status = "created"
-	return &res, nil
+	return &StatusResponse{
+		Status: http.StatusCreated,
+		Body:   NewDataResponse[any](SuccessStatus(), nil),
+	}, nil
 }
