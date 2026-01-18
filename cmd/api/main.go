@@ -2,33 +2,32 @@ package main
 
 import (
 	"log"
-	"sun-stockanalysis-api/app/http"
-	"sun-stockanalysis-api/config"
-	"sun-stockanalysis-api/internal/infrastructure/database"
+	"sun-stockanalysis-api/internal/configurations"
+	"sun-stockanalysis-api/internal/controllers"
+	"sun-stockanalysis-api/internal/database"
 	"sun-stockanalysis-api/internal/repository"
-	"sun-stockanalysis-api/internal/usecase/stock"
-	"sun-stockanalysis-api/app/http/handler"
-	stockDomain "sun-stockanalysis-api/internal/domain/stock"
+	"sun-stockanalysis-api/internal/domains/stock"
+	"sun-stockanalysis-api/internal/server"
+	"sun-stockanalysis-api/internal/models"
 )
 
 func main() {
-	cfg := config.ConfigGetting()
-
+	cfg := configurations.ConfigGetting()
 	// DB
 	db := database.NewPostgresDatabase(cfg.Database).ConnectionGetting()
 
 	// (optional) migrate
-	if err := db.AutoMigrate(&stockDomain.Stock{}); err != nil {
+	if err := db.AutoMigrate(&models.Stock{}); err != nil {
 		log.Fatalf("migrate error: %v", err)
 	}
 
 	// DI wiring
 	stockRepo := repository.NewStockRepository(db)
 	stockService := stock.NewStockService(stockRepo)
-	stockHandler := handler.NewStockHandlerImpl(stockService)
+	stockController := controllers.NewStockController(stockService)
 
 	// Fiber server
-	srv := http.NewServer(cfg, stockHandler)
+	srv := server.NewServer(cfg, stockController)
 
 	log.Printf("server starting on :%d", cfg.Server.Port)
 	if err := srv.Start(); err != nil {

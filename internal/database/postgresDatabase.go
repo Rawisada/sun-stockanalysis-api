@@ -3,7 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
-	"sun-stockanalysis-api/config"
+	"sun-stockanalysis-api/internal/configurations"
 	"sync"
 
 	"gorm.io/driver/postgres"
@@ -23,7 +23,7 @@ func (p *postgresDatabase) ConnectionGetting() *gorm.DB {
 	return p.DB
 }
 
-func NewPostgresDatabase(conf *config.Database) Database {
+func NewPostgresDatabase(conf *configurations.Database) Database {
 	once.Do(func() {
 		dsn := fmt.Sprintf(
 			"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s search_path=%s",

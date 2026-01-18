@@ -1,37 +1,26 @@
-package http
+package server
 
 import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
 
-	"sun-stockanalysis-api/config"
-	"sun-stockanalysis-api/app/http/handler"
+	"sun-stockanalysis-api/internal/configurations"
+	"sun-stockanalysis-api/internal/controllers"
+	"sun-stockanalysis-api/internal/handler"
 )
 
 type Server struct {
 	app *fiber.App
-	cfg *config.Config
+	cfg *configurations.Config
 }
 
-func NewServer(cfg *config.Config, stockHandler handler.StockHandler) *Server {
+func NewServer(cfg *configurations.Config, stockController *controllers.StockController) *Server {
 	app := fiber.New(fiber.Config{
 		BodyLimit: parseBodyLimit(cfg.Server.BodyLimit),
 	})
 
-	app.Use(recover.New())
-	app.Use(logger.New())
-
-	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok"})
-	})
-
-	v1 := app.Group("/v1")
-	stocks := v1.Group("/stocks")
-	stocks.Get("/:id", stockHandler.GetStock)
-	stocks.Post("/", stockHandler.CreateStock)
+	handler.RegisterRoutes(app, stockController)
 
 	return &Server{app: app, cfg: cfg}
 }
