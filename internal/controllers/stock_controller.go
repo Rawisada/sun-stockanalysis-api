@@ -32,23 +32,17 @@ func (c *StockController) GetStock(ctx context.Context, input *GetStockInput) (*
 
 	id, err := uuid.Parse(input.ID)
 	if err != nil {
-		return &StockResponse{
-			Status: http.StatusBadRequest,
-			Body:   NewDataResponse[*models.Stock](InvalidStatus("invalid uuid"), nil),
-		}, nil
+		return nil, NewBadRequest("invalid stock id")
 	}
 
 	s, err := c.stockService.GetStock(id)
 	if err != nil {
-		return &StockResponse{
-			Status: http.StatusNotFound,
-			Body:   NewDataResponse[*models.Stock](NewStatus("404", err.Error(), nil), nil),
-		}, nil
+		return nil, NewNotFound(err.Error())
 	}
 
 	return &StockResponse{
 		Status: http.StatusOK,
-		Body:   NewDataResponse(SuccessStatus(), s),
+		Body:   SuccessResponse(s),
 	}, nil
 }
 
@@ -70,10 +64,7 @@ func (c *StockController) CreateStock(ctx context.Context, input *CreateStockInp
 	_ = ctx
 
 	if input.Body.Symbol == "" || input.Body.Name == "" {
-		return &StatusResponse{
-			Status: http.StatusBadRequest,
-			Body:   NewDataResponse[any](InvalidStatus("symbol and name required"), nil),
-		}, nil
+		return nil, NewBadRequest("symbol and name required")
 	}
 
 	if err := c.stockService.CreateStock(
@@ -82,14 +73,11 @@ func (c *StockController) CreateStock(ctx context.Context, input *CreateStockInp
 		input.Body.Sector,
 		input.Body.Price,
 	); err != nil {
-		return &StatusResponse{
-			Status: http.StatusInternalServerError,
-			Body:   NewDataResponse[any](NewStatus("500", err.Error(), nil), nil),
-		}, nil
+		return nil, NewInternalError(err.Error())
 	}
 
 	return &StatusResponse{
 		Status: http.StatusCreated,
-		Body:   NewDataResponse[any](SuccessStatus(), nil),
+		Body:   SuccessResponse[any]("Stock created successfully"),
 	}, nil
 }

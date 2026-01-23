@@ -1,7 +1,5 @@
 package controllers
 
-import "strconv"
-
 type Status struct {
 	Code    string  `json:"code"`
 	Message string  `json:"message"`
@@ -11,6 +9,17 @@ type Status struct {
 type DataResponse[T any] struct {
 	Status Status `json:"status"`
 	Data   T      `json:"data"`
+}
+
+type APIError struct {
+	Code    ErrorCode   `json:"code"`
+	Message string      `json:"message"`
+	Details interface{} `json:"details,omitempty"`
+	Status  int         `json:"status"`
+}
+
+func (e *APIError) Error() string {
+	return e.Message
 }
 
 type ErrorResponse struct {
@@ -34,25 +43,6 @@ func NewStatus(code string, message string, remark *string) Status {
 	}
 }
 
-func SuccessStatus() Status {
-	return Status{
-		Code:    "0",
-		Message: "Success.",
-		Remark:  nil,
-	}
-}
-
-func InvalidStatus(message string) Status {
-	if message == "" {
-		message = "Invalid."
-	}
-	return Status{
-		Code:    "400",
-		Message: message,
-		Remark:  nil,
-	}
-}
-
 func NewDataResponse[T any](status Status, data T) DataResponse[T] {
 	return DataResponse[T]{
 		Status: status,
@@ -60,13 +50,27 @@ func NewDataResponse[T any](status Status, data T) DataResponse[T] {
 	}
 }
 
-func NewErrorResponse(status int, message string, errs ...error) *ErrorResponse {
+func NewGenericResponse[T any](status Status, data T) DataResponse[T] {
+	return DataResponse[T]{
+		Status: status,
+		Data:   data,
+	}
+}
+
+func SuccessResponse[T any](data T) DataResponse[T] {
+	return NewDataResponse(NewStatus(CodeSuccess, MsgSuccess, nil), data)
+}
+
+
+
+func NewErrorResponse(httpStatus int, message string, errs ...error) *ErrorResponse {
 	_ = errs
+	status := statusForHTTP(httpStatus)
+	if message != "" {
+		status.Remark = &message
+	}
 	return &ErrorResponse{
-		statusCode: status,
-		DataResponse: NewDataResponse[any](
-			NewStatus(strconv.Itoa(status), message, nil),
-			nil,
-		),
+		statusCode: httpStatus,
+		DataResponse: NewDataResponse[any](status, nil),
 	}
 }
