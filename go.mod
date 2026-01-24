@@ -6,6 +6,7 @@ require (
 	github.com/danielgtaylor/huma/v2 v2.34.3
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/gofiber/fiber/v2 v2.52.10
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/spf13/viper v1.21.0
 	go.opentelemetry.io/otel v1.37.0

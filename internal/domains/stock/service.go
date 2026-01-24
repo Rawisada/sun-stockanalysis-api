@@ -9,7 +9,7 @@ import (
 
 type StockService interface {
 	GetStock(id uuid.UUID) (*models.Stock, error)
-	CreateStock(symbol, name, sector string, price int) error
+	CreateStock(input CreateStockInput) error
 }
 
 type StockServiceImpl struct {
@@ -24,12 +24,16 @@ func (s *StockServiceImpl) GetStock(id uuid.UUID) (*models.Stock, error) {
 	return s.repo.FindByID(id)
 }
 
-func (s *StockServiceImpl) CreateStock(symbol, name, sector string, price int) error {
+func (s *StockServiceImpl) CreateStock(input CreateStockInput) error {
+
+
 	return s.repo.Create(&models.Stock{
-		// ไม่ต้อง set ID เพราะ DB default gen_random_uuid() จะสร้างให้
-		Symbol: symbol,
-		Name:   name,
-		Sector: sector,
-		Price:  price,
+		Symbol:      input.Body.Symbol,
+		Name:        input.Body.Name,
+		Sector:      input.Body.Sector,
+		Price:       input.Body.Price,
+		Exchange:    input.Body.Exchange,
+		AssetType:   input.Body.AssetType,
+		Currency:    input.Body.Currency,
 	})
 }

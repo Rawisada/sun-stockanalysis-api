@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/timeout"
 	"go.opentelemetry.io/otel"
 
+	common "sun-stockanalysis-api/internal/common"
 	"sun-stockanalysis-api/internal/controllers"
 	"sun-stockanalysis-api/internal/handler"
 )
@@ -33,16 +34,17 @@ type ServerConfig struct {
 	TrustedProxies          []string
 	MaxPayloadSizeKB        int
 	TimeoutSeconds          int
+	AuthSecret              string
+	AuthIssuer              string
 }
 
 const (
-	apiKeySchemeName = "ApiKeyAuth"
-	apiKeyHeaderName = "X-POS-Terminal-Token"
+	apiKeySchemeName = "BearerAuth"
 )
 
 func newHumaConfig(title string, version string) huma.Config {
 	huma.NewError = func(status int, msg string, errs ...error) huma.StatusError {
-		return controllers.NewErrorResponse(status, msg, errs...)
+		return common.NewErrorResponse(status, msg, errs...)
 	}
 
 	cfg := huma.DefaultConfig(title, version)
@@ -52,9 +54,9 @@ func newHumaConfig(title string, version string) huma.Config {
 	cfg.OnAddOperation = nil
 	cfg.OpenAPI.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 		apiKeySchemeName: {
-			Type: "apiKey",
-			In:   "header",
-			Name: apiKeyHeaderName,
+			Type:         "http",
+			Scheme:       "bearer",
+			BearerFormat: "JWT",
 		},
 	}
 	cfg.OpenAPI.Security = []map[string][]string{
@@ -74,7 +76,7 @@ func NewServer(serverConfig ServerConfig, controllers *controllers.Controllers) 
 	})
 
 	api := humafiber.New(app, humaConfig)
-	handler.RegisterRoutes(api, controllers)
+	handler.RegisterRoutes(api, controllers, serverConfig.AuthSecret, serverConfig.AuthIssuer)
 
 	app.Use(openTelemetryMiddleware())
 	app.Use(logger.New())

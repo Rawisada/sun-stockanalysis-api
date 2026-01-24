@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	common "sun-stockanalysis-api/internal/common"
 	"sun-stockanalysis-api/internal/domains/stock"
 	"sun-stockanalysis-api/internal/models"
 )
@@ -24,60 +25,72 @@ type GetStockInput struct {
 
 type StockResponse struct {
 	Status int `status:"default"`
-	Body   DataResponse[*models.Stock]
+	Body   common.DataResponse[*models.Stock]
 }
 
 func (c *StockController) GetStock(ctx context.Context, input *GetStockInput) (*StockResponse, error) {
 	_ = ctx
 
 	id, err := uuid.Parse(input.ID)
+
 	if err != nil {
-		return nil, NewBadRequest("invalid stock id")
+		return nil, common.NewBadRequest("invalid stock id")
 	}
 
 	s, err := c.stockService.GetStock(id)
+
 	if err != nil {
-		return nil, NewNotFound(err.Error())
+		return nil, common.NewNotFound("stock not found")
 	}
 
 	return &StockResponse{
 		Status: http.StatusOK,
-		Body:   SuccessResponse(s),
+		Body:   common.SuccessResponse(s),
 	}, nil
 }
 
-type CreateStockInput struct {
-	Body struct {
-		Symbol string `json:"symbol"`
-		Name   string `json:"name"`
-		Sector string `json:"sector"`
-		Price  int    `json:"price"`
-	}
-}
 
-type StatusResponse struct {
-	Status int `status:"default"`
-	Body   DataResponse[any]
-}
-
-func (c *StockController) CreateStock(ctx context.Context, input *CreateStockInput) (*StatusResponse, error) {
+func (c *StockController) CreateStock(ctx context.Context, input *stock.CreateStockInput) (*common.StatusResponse, error) {
 	_ = ctx
 
-	if input.Body.Symbol == "" || input.Body.Name == "" {
-		return nil, NewBadRequest("symbol and name required")
+	if err := validateCreateStockInput(input); err != nil {
+		return nil, err
 	}
 
-	if err := c.stockService.CreateStock(
-		input.Body.Symbol,
-		input.Body.Name,
-		input.Body.Sector,
-		input.Body.Price,
-	); err != nil {
-		return nil, NewInternalError(err.Error())
+	if err := c.stockService.CreateStock(*input); err != nil {
+		return nil, common.NewInternalError(err.Error())
 	}
 
-	return &StatusResponse{
+	return &common.StatusResponse{
 		Status: http.StatusCreated,
-		Body:   SuccessResponse[any]("Stock created successfully"),
+		Body:   common.SuccessResponse[any]("stock created successfully"),
 	}, nil
+}
+
+func validateCreateStockInput(input *stock.CreateStockInput) error {
+	if input.Body.Symbol == "" {
+		return common.NewBadRequest("symbol required")
+	}
+
+	if  input.Body.Name == "" {
+		return common.NewBadRequest("name required")
+	}
+
+	if input.Body.Exchange == "" {
+		return common.NewBadRequest("exchange required")
+	}
+
+	if input.Body.AssetType == "" {
+		return common.NewBadRequest("assetType required")
+	}
+
+	if input.Body.Currency == "" {
+		return common.NewBadRequest("currency required")
+	}
+
+	if input.Body.Price < 0 {
+		return common.NewBadRequest("price must be non-negative")
+	}
+
+	return nil
 }

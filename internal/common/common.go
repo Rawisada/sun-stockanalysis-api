@@ -27,6 +27,12 @@ type ErrorResponse struct {
 	DataResponse[any]
 }
 
+
+type StatusResponse struct {
+	Status int `status:"default"`
+	Body   DataResponse[any]
+}
+
 func (e *ErrorResponse) Error() string {
 	return e.Status.Message
 }
@@ -60,8 +66,6 @@ func NewGenericResponse[T any](status Status, data T) DataResponse[T] {
 func SuccessResponse[T any](data T) DataResponse[T] {
 	return NewDataResponse(NewStatus(CodeSuccess, MsgSuccess, nil), data)
 }
-
-
 
 func NewErrorResponse(httpStatus int, message string, errs ...error) *ErrorResponse {
 	_ = errs
