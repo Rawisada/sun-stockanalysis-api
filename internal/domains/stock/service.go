@@ -1,4 +1,4 @@
-﻿package stock
+package stock
 
 import (
 	"github.com/google/uuid"
@@ -25,15 +25,13 @@ func (s *StockServiceImpl) GetStock(id uuid.UUID) (*models.Stock, error) {
 }
 
 func (s *StockServiceImpl) CreateStock(input CreateStockInput) error {
-
-
 	return s.repo.Create(&models.Stock{
-		Symbol:      input.Body.Symbol,
-		Name:        input.Body.Name,
-		Sector:      input.Body.Sector,
-		Price:       input.Body.Price,
-		Exchange:    input.Body.Exchange,
-		AssetType:   input.Body.AssetType,
-		Currency:    input.Body.Currency,
+		Symbol:    input.Body.Symbol,
+		Name:      input.Body.Name,
+		Sector:    input.Body.Sector,
+		Price:     input.Body.Price,
+		Exchange:  input.Body.Exchange,
+		AssetType: input.Body.AssetType,
+		Currency:  input.Body.Currency,
 	})
 }

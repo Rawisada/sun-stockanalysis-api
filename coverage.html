@@ -1,0 +1,2781 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>api: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">sun-stockanalysis-api/cmd/api/main.go (0.0%)</option>
+				
+				<option value="file1">sun-stockanalysis-api/internal/common/common.go (0.0%)</option>
+				
+				<option value="file2">sun-stockanalysis-api/internal/common/errors.go (0.0%)</option>
+				
+				<option value="file3">sun-stockanalysis-api/internal/common/result_code.go (0.0%)</option>
+				
+				<option value="file4">sun-stockanalysis-api/internal/configurations/configurations.go (0.0%)</option>
+				
+				<option value="file5">sun-stockanalysis-api/internal/controllers/auth_controller.go (100.0%)</option>
+				
+				<option value="file6">sun-stockanalysis-api/internal/controllers/controllers.go (0.0%)</option>
+				
+				<option value="file7">sun-stockanalysis-api/internal/controllers/health_controller.go (0.0%)</option>
+				
+				<option value="file8">sun-stockanalysis-api/internal/controllers/stock_controller.go (82.1%)</option>
+				
+				<option value="file9">sun-stockanalysis-api/internal/database/health.go (0.0%)</option>
+				
+				<option value="file10">sun-stockanalysis-api/internal/database/postgresDatabase.go (0.0%)</option>
+				
+				<option value="file11">sun-stockanalysis-api/internal/domains/auth/service.go (74.4%)</option>
+				
+				<option value="file12">sun-stockanalysis-api/internal/domains/stock/service.go (100.0%)</option>
+				
+				<option value="file13">sun-stockanalysis-api/internal/handler/auth_middleware.go (0.0%)</option>
+				
+				<option value="file14">sun-stockanalysis-api/internal/handler/handler.go (0.0%)</option>
+				
+				<option value="file15">sun-stockanalysis-api/internal/mocks/domains/auth/authservice_mock.go (0.0%)</option>
+				
+				<option value="file16">sun-stockanalysis-api/internal/mocks/domains/stock/stockservice_mock.go (0.0%)</option>
+				
+				<option value="file17">sun-stockanalysis-api/internal/mocks/repository/healthrepository_mock.go (0.0%)</option>
+				
+				<option value="file18">sun-stockanalysis-api/internal/mocks/repository/refreshtokenrepository_mock.go (0.0%)</option>
+				
+				<option value="file19">sun-stockanalysis-api/internal/mocks/repository/stockrepository_mock.go (0.0%)</option>
+				
+				<option value="file20">sun-stockanalysis-api/internal/mocks/repository/userrepository_mock.go (0.0%)</option>
+				
+				<option value="file21">sun-stockanalysis-api/internal/repository/health.go (0.0%)</option>
+				
+				<option value="file22">sun-stockanalysis-api/internal/repository/refresh_token.go (0.0%)</option>
+				
+				<option value="file23">sun-stockanalysis-api/internal/repository/stock.go (0.0%)</option>
+				
+				<option value="file24">sun-stockanalysis-api/internal/repository/user.go (0.0%)</option>
+				
+				<option value="file25">sun-stockanalysis-api/internal/server/server.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "log"
+        "strconv"
+        "strings"
+
+        "sun-stockanalysis-api/internal/configurations"
+        "sun-stockanalysis-api/internal/controllers"
+        "sun-stockanalysis-api/internal/database"
+        "sun-stockanalysis-api/internal/domains/auth"
+        "sun-stockanalysis-api/internal/domains/stock"
+        "sun-stockanalysis-api/internal/models"
+        "sun-stockanalysis-api/internal/repository"
+        "sun-stockanalysis-api/internal/server"
+)
+
+func main() <span class="cov0" title="0">{
+        cfg := configurations.ConfigGetting()
+        // DB
+        db := database.NewPostgresDatabase(cfg.Database).ConnectionGetting()
+
+        // (optional) migrate
+        if err := db.AutoMigrate(&amp;models.Stock{}, &amp;models.User{}, &amp;models.RefreshTokens{}); err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("migrate error: %v", err)
+        }</span>
+
+        // DI wiring
+        <span class="cov0" title="0">stockRepo := repository.NewStockRepository(db)
+        stockService := stock.NewStockService(stockRepo)
+        stockController := controllers.NewStockController(stockService)
+        healthRepo := repository.NewHealthRepository(db)
+        userRepo := repository.NewUserRepository(db)
+        refreshTokenRepo := repository.NewRefreshTokenRepository(db)
+        authService := auth.NewAuthService(userRepo, refreshTokenRepo, cfg.State)
+        authController := controllers.NewAuthController(authService)
+
+        serverConfig := server.ServerConfig{
+                Title:            server.ServerTitle("sun-stockanalysis-api"),
+                Version:          server.ServerVersion("1.0.0"),
+                Port:             toPortString(cfg.Server.Port),
+                MaxPayloadSizeKB: parseBodyLimitKB(cfg.Server.BodyLimit),
+                TimeoutSeconds:   int(cfg.Server.TimeOut.Seconds()),
+                AuthSecret:       cfg.State.Secret,
+                AuthIssuer:       cfg.State.Issuer,
+        }
+
+        healthController := controllers.NewHealthController(healthRepo, string(serverConfig.Version))
+        appControllers := controllers.NewControllers(healthController, stockController, authController)
+
+        // Fiber server
+        srv := server.NewServer(serverConfig, appControllers)
+
+        log.Printf("server starting on :%d", cfg.Server.Port)
+        if err := srv.Start(); err != nil </span><span class="cov0" title="0">{
+                log.Fatal(err)
+        }</span>
+}
+
+func parseBodyLimitKB(v string) int <span class="cov0" title="0">{
+        value := strings.TrimSpace(strings.ToUpper(v))
+        if strings.HasSuffix(value, "M") </span><span class="cov0" title="0">{
+                n := strings.TrimSuffix(value, "M")
+                return atoiOrZero(n) * 1024
+        }</span>
+        <span class="cov0" title="0">if strings.HasSuffix(value, "K") </span><span class="cov0" title="0">{
+                n := strings.TrimSuffix(value, "K")
+                return atoiOrZero(n)
+        }</span>
+        <span class="cov0" title="0">return atoiOrZero(value) * 1024</span>
+}
+
+func atoiOrZero(v string) int <span class="cov0" title="0">{
+        var n int
+        for _, r := range v </span><span class="cov0" title="0">{
+                if r &lt; '0' || r &gt; '9' </span><span class="cov0" title="0">{
+                        return 0
+                }</span>
+                <span class="cov0" title="0">n = n*10 + int(r-'0')</span>
+        }
+        <span class="cov0" title="0">return n</span>
+}
+
+func toPortString(port int) string <span class="cov0" title="0">{
+        if port &lt;= 0 </span><span class="cov0" title="0">{
+                return "8080"
+        }</span>
+        <span class="cov0" title="0">return strconv.Itoa(port)</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package controllers
+
+type Status struct {
+        Code    string  `json:"code"`
+        Message string  `json:"message"`
+        Remark  *string `json:"remark"`
+}
+
+type DataResponse[T any] struct {
+        Status Status `json:"status"`
+        Data   T      `json:"data"`
+}
+
+type APIError struct {
+        Code    ErrorCode   `json:"code"`
+        Message string      `json:"message"`
+        Details interface{} `json:"details,omitempty"`
+        Status  int         `json:"status"`
+}
+
+func (e *APIError) Error() string <span class="cov0" title="0">{
+        return e.Message
+}</span>
+
+type ErrorResponse struct {
+        statusCode int `json:"-"`
+        DataResponse[any]
+}
+
+
+type StatusResponse struct {
+        Status int `status:"default"`
+        Body   DataResponse[any]
+}
+
+func (e *ErrorResponse) Error() string <span class="cov0" title="0">{
+        return e.Status.Message
+}</span>
+
+func (e *ErrorResponse) GetStatus() int <span class="cov0" title="0">{
+        return e.statusCode
+}</span>
+
+func NewStatus(code string, message string, remark *string) Status <span class="cov0" title="0">{
+        return Status{
+                Code:    code,
+                Message: message,
+                Remark:  remark,
+        }
+}</span>
+
+func NewDataResponse[T any](status Status, data T) DataResponse[T] <span class="cov0" title="0">{
+        return DataResponse[T]{
+                Status: status,
+                Data:   data,
+        }
+}</span>
+
+func NewGenericResponse[T any](status Status, data T) DataResponse[T] <span class="cov0" title="0">{
+        return DataResponse[T]{
+                Status: status,
+                Data:   data,
+        }
+}</span>
+
+func SuccessResponse[T any](data T) DataResponse[T] <span class="cov0" title="0">{
+        return NewDataResponse(NewStatus(CodeSuccess, MsgSuccess, nil), data)
+}</span>
+
+func NewErrorResponse(httpStatus int, message string, errs ...error) *ErrorResponse <span class="cov0" title="0">{
+        _ = errs
+        status := statusForHTTP(httpStatus)
+        if message != "" </span><span class="cov0" title="0">{
+                status.Remark = &amp;message
+        }</span>
+        <span class="cov0" title="0">return &amp;ErrorResponse{
+                statusCode: httpStatus,
+                DataResponse: NewDataResponse[any](status, nil),
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package controllers
+
+import "net/http"
+
+func NewNotFound(message string) *APIError <span class="cov0" title="0">{
+        return &amp;APIError{
+                Code:    ErrCodeNotFound,
+                Message: message,
+                Status:  http.StatusNotFound,
+        }
+}</span>
+
+func NewBadRequest(message string) *APIError <span class="cov0" title="0">{
+        return &amp;APIError{
+                Code:    ErrCodeBadRequest,
+                Message: message,
+                Status:  http.StatusBadRequest,
+        }
+}</span>
+
+func NewUnauthorized(message string) *APIError <span class="cov0" title="0">{
+        return &amp;APIError{
+                Code:    ErrCodeUnauthorized,
+                Message: message,
+                Status:  http.StatusUnauthorized,
+        }
+}</span>
+
+func NewForbidden(message string) *APIError <span class="cov0" title="0">{
+        return &amp;APIError{
+                Code:    ErrCodeForbidden,
+                Message: message,
+                Status:  http.StatusForbidden,
+        }
+}</span>
+
+func NewInternalError(message string) *APIError <span class="cov0" title="0">{
+        return &amp;APIError{
+                Code:    ErrCodeInternalError,
+                Message: message,
+                Status:  http.StatusInternalServerError,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package controllers
+
+import (
+        "net/http"
+
+        "github.com/gofiber/fiber/v2"
+)
+
+func ToResponse(err error) (int, DataResponse[any]) <span class="cov0" title="0">{
+        if err == nil </span><span class="cov0" title="0">{
+                return http.StatusOK, NewGenericResponse[any](
+                        NewStatus(CodeSuccess, MsgSuccess, nil),
+                        nil,
+                )
+        }</span>
+
+        <span class="cov0" title="0">if apiErr, ok := err.(*APIError); ok </span><span class="cov0" title="0">{
+                status := statusForAPIError(apiErr)
+                if status.Code == "" </span><span class="cov0" title="0">{
+                        status = statusForHTTP(apiErr.Status)
+                }</span>
+                <span class="cov0" title="0">remark := err.Error()
+                status.Remark = &amp;remark
+                return apiErr.Status, NewDataResponse[any](status, nil)</span>
+        }
+
+        <span class="cov0" title="0">if fiberErr, ok := err.(*fiber.Error); ok </span><span class="cov0" title="0">{
+                status := statusForHTTP(fiberErr.Code)
+                remark := err.Error()
+                status.Remark = &amp;remark
+                return fiberErr.Code, NewDataResponse[any](status, nil)
+        }</span>
+
+        <span class="cov0" title="0">status := statusForHTTP(http.StatusInternalServerError)
+        remark := err.Error()
+        status.Remark = &amp;remark
+        return http.StatusInternalServerError, NewDataResponse[any](status, nil)</span>
+}
+
+func statusForAPIError(apiErr *APIError) Status <span class="cov0" title="0">{
+        switch apiErr.Code </span>{
+        case ErrCodeNotFound:<span class="cov0" title="0">
+                return Status{Code: CodeDataNotFound, Message: MsgDataNotFound}</span>
+        case ErrCodeBadRequest:<span class="cov0" title="0">
+                return Status{Code: CodeInvalidParam, Message: MsgInvalidParam}</span>
+        case ErrCodeUnauthorized:<span class="cov0" title="0">
+                return Status{Code: CodeUnauthorized, Message: MsgUnauthorized}</span>
+        case ErrCodeForbidden:<span class="cov0" title="0">
+                return Status{Code: CodeUnauthorized, Message: MsgUnauthorized}</span>
+        case ErrCodeConflict:<span class="cov0" title="0">
+                return Status{Code: CodeInvalidParam, Message: MsgInvalidParam}</span>
+        case ErrCodeInternalError:<span class="cov0" title="0">
+                return Status{Code: CodeSystemError, Message: MsgSystemError}</span>
+        default:<span class="cov0" title="0">
+                return Status{}</span>
+        }
+}
+
+func statusForHTTP(httpStatus int) Status <span class="cov0" title="0">{
+        switch httpStatus </span>{
+        case http.StatusBadRequest:<span class="cov0" title="0">
+                return Status{Code: CodeInvalidParam, Message: MsgInvalidParam}</span>
+        case http.StatusUnauthorized:<span class="cov0" title="0">
+                return Status{Code: CodeUnauthorized, Message: MsgUnauthorized}</span>
+        case http.StatusForbidden:<span class="cov0" title="0">
+                return Status{Code: CodeUnauthorized, Message: MsgUnauthorized}</span>
+        case http.StatusNotFound:<span class="cov0" title="0">
+                return Status{Code: CodeDataNotFound, Message: MsgDataNotFound}</span>
+        case http.StatusConflict:<span class="cov0" title="0">
+                return Status{Code: CodeInvalidParam, Message: MsgInvalidParam}</span>
+        case http.StatusRequestTimeout:<span class="cov0" title="0">
+                return Status{Code: CodeRequestTimeout, Message: MsgRequestTimeout}</span>
+        case http.StatusInternalServerError:<span class="cov0" title="0">
+                return Status{Code: CodeSystemError, Message: MsgSystemError}</span>
+        default:<span class="cov0" title="0">
+                return Status{Code: CodeGeneralError, Message: MsgGeneralError}</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package configurations
+
+import (
+        "strings"
+        "sync"
+        "time"
+
+        "github.com/spf13/viper"
+        "github.com/go-playground/validator/v10"
+        
+)
+
+type (
+        Config struct {
+                Server           *Server           `mapstructure:"server" validate:"required"`
+                // OAuth2           *OAuth2           `mapstructure:"oauth2" validate:"required"`
+                State           *State           `mapstructure:"state" validate:"required"`
+                Database         *Database         `mapstructure:"database" validate:"required"`
+        }
+
+        Server struct {
+                Port                   int                      `mapstructure:"port" validate:"required"`
+                AllowedOrigins         []string                 `mapstructure:"allowOrigins" validate:"required"`
+                BodyLimit                string                        `mapstructure:"bodyLimit" validate:"required"`
+                TimeOut                time.Duration          `mapstructure:"timeout" validate:"required"`
+                
+        }
+
+        // OAuth2 struct {
+        //         ClientID             string                 `mapstructure:"clientId" validate:"required"`
+        //         ClientSecret         string                 `mapstructure:"clientSecret" validate:"required"`
+        //         RedirectURL          string                 `mapstructure:"redirectUrl" validate:"required"`
+        //         EndPoints                endpoint         `mapstructure:"endpoints" validate:"required"`
+        //         Scopes                        []string        `mapstructure:"scopes" validate:"required"`
+        //         UserInfoUrl                string                 `mapstructure:"userInfoUrl" validate:"required"`
+        //         revokeUrl                string                 `mapstructure:"revokeUrl" validate:"required"`
+        // }
+
+        // endpoint struct {
+        //         AuthUrl             string                 `mapstructure:"authUrl" validate:"required"`
+        //         TokenUrl                 string                 `mapstructure:"tokenUrl" validate:"required"`
+        //         DeviceAuthUrl          string                 `mapstructure:"deviceAuthUrl" validate:"required"`
+        // }
+
+        State    struct{
+                Secret                     string                                 `mapstructure:"secret" validate:"required"`
+                ExpiredsAt                 time.Duration                 `mapstructure:"expiredsAt" validate:"required"`
+                Issuer                  string                                 `mapstructure:"issuer" validate:"required"`
+        }
+
+        Database struct {
+                Host                     string                 `mapstructure:"host" validate:"required"`
+                Port                     int                    `mapstructure:"port" validate:"required"`
+                User                     string                 `mapstructure:"user" validate:"required"`
+                Password                 string                 `mapstructure:"password" validate:"required"`
+                DBname                   string                 `mapstructure:"dbname" validate:"required"`
+                SSLmode                   string                 `mapstructure:"sslmode" validate:"required"`
+                Schema                   string                 `mapstructure:"schema" validate:"required"`
+        }
+)
+
+var (
+        once                                 sync.Once  //Singleton 
+        configInstance                 *Config
+)
+
+func ConfigGetting() *Config <span class="cov0" title="0">{
+        once.Do(func() </span><span class="cov0" title="0">{
+                viper.SetConfigName("config")
+                viper.SetConfigType("yaml")
+                viper.AddConfigPath("./config")
+                viper.AddConfigPath(".")
+                viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+                viper.AutomaticEnv()
+
+                if err := viper.ReadInConfig(); err != nil </span><span class="cov0" title="0">{
+                        panic(err)</span>
+                }
+
+                <span class="cov0" title="0">var cfg Config
+                if err := viper.Unmarshal(&amp;cfg); err != nil </span><span class="cov0" title="0">{
+                        panic(err)</span>
+                }
+
+                <span class="cov0" title="0">if err := validator.New().Struct(&amp;cfg); err != nil </span><span class="cov0" title="0">{
+                        panic(err)</span>
+                }
+
+                <span class="cov0" title="0">configInstance = &amp;cfg</span>
+        })
+
+        <span class="cov0" title="0">return  configInstance</span>
+}</pre>
+		
+		<pre class="file" id="file5" style="display: none">package controllers
+
+import (
+        "context"
+        "net/http"
+
+        common "sun-stockanalysis-api/internal/common"
+        "sun-stockanalysis-api/internal/domains/auth"
+)
+
+type AuthController struct {
+        authService auth.AuthService
+}
+
+func NewAuthController(authService auth.AuthService) *AuthController <span class="cov8" title="1">{
+        return &amp;AuthController{authService: authService}
+}</span>
+
+type LoginResponseBody struct {
+        AccessToken  string `json:"access_token"`
+        RefreshToken string `json:"refresh_token"`
+        TokenType    string `json:"token_type"`
+        ExpiresIn    int64  `json:"expires_in"`
+}
+
+type LoginResponse struct {
+        Status int `status:"default"`
+        Body   common.DataResponse[LoginResponseBody]
+}
+
+type RegisterResponseBody struct {
+        UserID string `json:"user_id"`
+}
+
+type RegisterResponse struct {
+        Status int `status:"default"`
+        Body   common.DataResponse[RegisterResponseBody]
+}
+
+type RefreshResponse struct {
+        Status int `status:"default"`
+        Body   common.DataResponse[LoginResponseBody]
+}
+
+func (c *AuthController) Login(ctx context.Context, input *auth.LoginInput) (*LoginResponse, error) <span class="cov8" title="1">{
+        _ = ctx
+
+        if input.Body.Email == "" || input.Body.Password == "" </span><span class="cov8" title="1">{
+                return nil, common.NewBadRequest("email and password required")
+        }</span>
+
+        <span class="cov8" title="1">result, err := c.authService.Login(*input)
+        if err != nil </span><span class="cov8" title="1">{
+                if err == auth.ErrInvalidCredentials </span><span class="cov8" title="1">{
+                        return nil, common.NewUnauthorized("invalid email or password")
+                }</span>
+                <span class="cov8" title="1">return nil, common.NewInternalError(err.Error())</span>
+        }
+
+        <span class="cov8" title="1">return &amp;LoginResponse{
+                Status: http.StatusOK,
+                Body: common.SuccessResponse(LoginResponseBody{
+                        AccessToken:  result.AccessToken,
+                        RefreshToken: result.RefreshToken,
+                        TokenType:    "Bearer",
+                        ExpiresIn:    result.ExpiresIn,
+                }),
+        }, nil</span>
+}
+
+func (c *AuthController) Register(ctx context.Context, input *auth.RegisterInput) (*RegisterResponse, error) <span class="cov8" title="1">{
+        _ = ctx
+
+        if input.Body.Email == "" || input.Body.Password == "" </span><span class="cov8" title="1">{
+                return nil, common.NewBadRequest("email and password required")
+        }</span>
+
+        <span class="cov8" title="1">result, err := c.authService.Register(*input)
+        if err != nil </span><span class="cov8" title="1">{
+                if err == auth.ErrEmailAlreadyExists </span><span class="cov8" title="1">{
+                        return nil, common.NewBadRequest("email already exists")
+                }</span>
+                <span class="cov8" title="1">return nil, common.NewInternalError(err.Error())</span>
+        }
+
+        <span class="cov8" title="1">return &amp;RegisterResponse{
+                Status: http.StatusCreated,
+                Body: common.SuccessResponse(RegisterResponseBody{
+                        UserID: result.UserID,
+                }),
+        }, nil</span>
+}
+
+func (c *AuthController) Refresh(ctx context.Context, input *auth.RefreshInput) (*RefreshResponse, error) <span class="cov8" title="1">{
+        _ = ctx
+
+        if input.Body.RefreshToken == "" </span><span class="cov8" title="1">{
+                return nil, common.NewBadRequest("refresh_token required")
+        }</span>
+
+        <span class="cov8" title="1">result, err := c.authService.Refresh(*input)
+        if err != nil </span><span class="cov8" title="1">{
+                if err == auth.ErrInvalidRefreshToken </span><span class="cov8" title="1">{
+                        return nil, common.NewUnauthorized("invalid refresh token")
+                }</span>
+                <span class="cov8" title="1">return nil, common.NewInternalError(err.Error())</span>
+        }
+
+        <span class="cov8" title="1">return &amp;RefreshResponse{
+                Status: http.StatusOK,
+                Body: common.SuccessResponse(LoginResponseBody{
+                        AccessToken:  result.AccessToken,
+                        RefreshToken: result.RefreshToken,
+                        TokenType:    "Bearer",
+                        ExpiresIn:    result.ExpiresIn,
+                }),
+        }, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package controllers
+
+type EmptyRequest struct{}
+
+type EmptyResponse struct {
+        Status int `status:"default"`
+}
+
+type Response[T any] struct {
+        Body T
+}
+
+type Controllers struct {
+        HealthController *HealthController
+        StockController  *StockController
+        AuthController   *AuthController
+}
+
+func NewControllers(
+        healthController *HealthController,
+        stockController *StockController,
+        authController *AuthController,
+) *Controllers <span class="cov0" title="0">{
+        return &amp;Controllers{
+                HealthController: healthController,
+                StockController:  stockController,
+                AuthController:   authController,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package controllers
+
+import (
+        "context"
+
+        "sun-stockanalysis-api/internal/repository"
+)
+
+type HealthController struct {
+        healthRepository repository.HealthRepository
+        serverVersion    string
+}
+
+func NewHealthController(healthRepository repository.HealthRepository, serverVersion string) *HealthController <span class="cov0" title="0">{
+        return &amp;HealthController{
+                healthRepository: healthRepository,
+                serverVersion:    serverVersion,
+        }
+}</span>
+
+type HealthRequest struct {
+}
+
+type HealthResponseBody struct {
+        Version string `json:"version"`
+}
+
+func (hc *HealthController) Healthz(ctx context.Context, req *EmptyRequest) (*Response[HealthResponseBody], error) <span class="cov0" title="0">{
+        return &amp;Response[HealthResponseBody]{
+                Body: HealthResponseBody{
+                        Version: hc.serverVersion,
+                },
+        }, nil
+}</span>
+
+func (hc *HealthController) Readyz(ctx context.Context, req *EmptyRequest) (*EmptyResponse, error) <span class="cov0" title="0">{
+        err := hc.healthRepository.CheckDBStatus(ctx)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return &amp;EmptyResponse{
+                Status: 200,
+        }, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package controllers
+
+import (
+        "context"
+        "net/http"
+
+        "github.com/google/uuid"
+
+        common "sun-stockanalysis-api/internal/common"
+        "sun-stockanalysis-api/internal/domains/stock"
+        "sun-stockanalysis-api/internal/models"
+)
+
+type StockController struct {
+        stockService stock.StockService
+}
+
+func NewStockController(stockService stock.StockService) *StockController <span class="cov8" title="1">{
+        return &amp;StockController{stockService: stockService}
+}</span>
+
+type GetStockInput struct {
+        ID string `path:"id" doc:"Stock ID (UUID)"`
+}
+
+type StockResponse struct {
+        Status int `status:"default"`
+        Body   common.DataResponse[*models.Stock]
+}
+
+func (c *StockController) GetStock(ctx context.Context, input *GetStockInput) (*StockResponse, error) <span class="cov8" title="1">{
+        _ = ctx
+
+        id, err := uuid.Parse(input.ID)
+
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, common.NewBadRequest("invalid stock id")
+        }</span>
+
+        <span class="cov8" title="1">s, err := c.stockService.GetStock(id)
+
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, common.NewNotFound("stock not found")
+        }</span>
+
+        <span class="cov8" title="1">return &amp;StockResponse{
+                Status: http.StatusOK,
+                Body:   common.SuccessResponse(s),
+        }, nil</span>
+}
+
+
+func (c *StockController) CreateStock(ctx context.Context, input *stock.CreateStockInput) (*common.StatusResponse, error) <span class="cov8" title="1">{
+        _ = ctx
+
+        if err := validateCreateStockInput(input); err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">if err := c.stockService.CreateStock(*input); err != nil </span><span class="cov8" title="1">{
+                return nil, common.NewInternalError(err.Error())
+        }</span>
+
+        <span class="cov8" title="1">return &amp;common.StatusResponse{
+                Status: http.StatusCreated,
+                Body:   common.SuccessResponse[any]("stock created successfully"),
+        }, nil</span>
+}
+
+func validateCreateStockInput(input *stock.CreateStockInput) error <span class="cov8" title="1">{
+        if input.Body.Symbol == "" </span><span class="cov8" title="1">{
+                return common.NewBadRequest("symbol required")
+        }</span>
+
+        <span class="cov8" title="1">if  input.Body.Name == "" </span><span class="cov0" title="0">{
+                return common.NewBadRequest("name required")
+        }</span>
+
+        <span class="cov8" title="1">if input.Body.Exchange == "" </span><span class="cov0" title="0">{
+                return common.NewBadRequest("exchange required")
+        }</span>
+
+        <span class="cov8" title="1">if input.Body.AssetType == "" </span><span class="cov0" title="0">{
+                return common.NewBadRequest("assetType required")
+        }</span>
+
+        <span class="cov8" title="1">if input.Body.Currency == "" </span><span class="cov0" title="0">{
+                return common.NewBadRequest("currency required")
+        }</span>
+
+        <span class="cov8" title="1">if input.Body.Price &lt; 0 </span><span class="cov0" title="0">{
+                return common.NewBadRequest("price must be non-negative")
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package database
+
+import (
+        "context"
+
+        "gorm.io/gorm"
+)
+
+func CheckPostgresHealth(db *gorm.DB, ctx context.Context) error <span class="cov0" title="0">{
+        return db.WithContext(ctx).Exec("SELECT 1").Error
+}</span>
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package database
+
+import (
+        "fmt"
+        "log"
+        "sun-stockanalysis-api/internal/configurations"
+        "sync"
+
+        "gorm.io/driver/postgres"
+        "gorm.io/gorm"
+)
+
+type postgresDatabase struct {
+        *gorm.DB
+}
+
+var (
+        postgreDatebaseInstance         *postgresDatabase
+        once                                                sync.Once                                
+)
+
+func (p *postgresDatabase) ConnectionGetting() *gorm.DB <span class="cov0" title="0">{
+        return p.DB
+}</span>
+
+func NewPostgresDatabase(conf *configurations.Database) Database <span class="cov0" title="0">{
+        once.Do(func() </span><span class="cov0" title="0">{
+                dsn := fmt.Sprintf(
+                        "host=%s port=%d user=%s password=%s dbname=%s sslmode=%s search_path=%s",
+                        conf.Host, conf.Port, conf.User, conf.Password, conf.DBname, conf.SSLmode, conf.Schema,
+                )
+
+                conn, err := gorm.Open(postgres.Open(dsn), &amp;gorm.Config{})
+                if err != nil </span><span class="cov0" title="0">{
+                        panic(err)</span>
+                }
+
+                <span class="cov0" title="0">log.Printf("Connected to database %s", conf.DBname)
+                postgreDatebaseInstance = &amp;postgresDatabase{conn}</span>
+        })
+
+        <span class="cov0" title="0">return postgreDatebaseInstance</span>
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package auth
+
+import (
+        "crypto/rand"
+        "crypto/sha256"
+        "encoding/base64"
+        "encoding/hex"
+        "errors"
+        "time"
+
+        "github.com/golang-jwt/jwt/v5"
+        "github.com/google/uuid"
+        "golang.org/x/crypto/bcrypt"
+
+        "sun-stockanalysis-api/internal/configurations"
+        "sun-stockanalysis-api/internal/models"
+        "sun-stockanalysis-api/internal/repository"
+)
+
+var (
+        ErrInvalidCredentials  = errors.New("invalid credentials")
+        ErrEmailAlreadyExists  = errors.New("email already exists")
+        ErrInvalidRefreshToken = errors.New("invalid refresh token")
+)
+
+const refreshTokenTTL = 7 * 24 * time.Hour
+
+type AuthService interface {
+        Login(input LoginInput) (*LoginResult, error)
+        Register(input RegisterInput) (*RegisterResult, error)
+        Refresh(input RefreshInput) (*LoginResult, error)
+}
+
+type AuthServiceImpl struct {
+        userRepo         repository.UserRepository
+        refreshTokenRepo repository.RefreshTokenRepository
+        stateConfig      *configurations.State
+}
+
+func NewAuthService(
+        userRepo repository.UserRepository,
+        refreshTokenRepo repository.RefreshTokenRepository,
+        stateConfig *configurations.State,
+) AuthService <span class="cov8" title="1">{
+        return &amp;AuthServiceImpl{
+                userRepo:         userRepo,
+                refreshTokenRepo: refreshTokenRepo,
+                stateConfig:      stateConfig,
+        }
+}</span>
+
+func (s *AuthServiceImpl) Login(input LoginInput) (*LoginResult, error) <span class="cov8" title="1">{
+        if s.stateConfig == nil || s.stateConfig.Secret == "" </span><span class="cov8" title="1">{
+                return nil, errors.New("auth secret not configured")
+        }</span>
+
+        <span class="cov8" title="1">user, err := s.userRepo.FindByEmail(input.Body.Email)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, ErrInvalidCredentials
+        }</span>
+
+        <span class="cov8" title="1">if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Body.Password)); err != nil </span><span class="cov0" title="0">{
+                return nil, ErrInvalidCredentials
+        }</span>
+
+        <span class="cov8" title="1">accessToken, expiresAt, err := s.createAccessToken(user)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">refreshToken, refreshTokenHash, refreshExpiresAt, err := newRefreshToken()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">if err := s.refreshTokenRepo.Create(&amp;models.RefreshTokens{
+                UserID:    user.ID.String(),
+                TokenHash: refreshTokenHash,
+                ExpiresAt: refreshExpiresAt.Format(time.RFC3339),
+                RevokedAt: 0,
+        }); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">_ = s.userRepo.UpdateLastLogin(user.ID, time.Now())
+
+        return &amp;LoginResult{
+                AccessToken:  accessToken,
+                RefreshToken: refreshToken,
+                ExpiresIn:    int64(time.Until(expiresAt).Seconds()),
+        }, nil</span>
+}
+
+func (s *AuthServiceImpl) Register(input RegisterInput) (*RegisterResult, error) <span class="cov8" title="1">{
+        if input.Body.Email == "" || input.Body.Password == "" </span><span class="cov8" title="1">{
+                return nil, errors.New("email and password required")
+        }</span>
+
+        <span class="cov8" title="1">exists, err := s.userRepo.ExistsByEmail(input.Body.Email)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">if exists </span><span class="cov8" title="1">{
+                return nil, ErrEmailAlreadyExists
+        }</span>
+
+        <span class="cov8" title="1">hashed, err := bcrypt.GenerateFromPassword([]byte(input.Body.Password), bcrypt.DefaultCost)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">user := &amp;models.User{
+                Email:     input.Body.Email,
+                Password:  string(hashed),
+                FirstName: input.Body.FirstName,
+                LastName:  input.Body.LastName,
+                Role:      "USER",
+        }
+
+        if err := s.userRepo.Create(user); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return &amp;RegisterResult{UserID: user.ID.String()}, nil</span>
+}
+
+func (s *AuthServiceImpl) Refresh(input RefreshInput) (*LoginResult, error) <span class="cov8" title="1">{
+        if s.stateConfig == nil || s.stateConfig.Secret == "" </span><span class="cov0" title="0">{
+                return nil, errors.New("auth secret not configured")
+        }</span>
+        <span class="cov8" title="1">if input.Body.RefreshToken == "" </span><span class="cov8" title="1">{
+                return nil, ErrInvalidRefreshToken
+        }</span>
+
+        <span class="cov8" title="1">hashBytes := sha256.Sum256([]byte(input.Body.RefreshToken))
+        hash := hex.EncodeToString(hashBytes[:])
+
+        stored, err := s.refreshTokenRepo.FindByHash(hash)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, ErrInvalidRefreshToken
+        }</span>
+
+        <span class="cov8" title="1">if stored.RevokedAt &gt; 0 </span><span class="cov0" title="0">{
+                return nil, ErrInvalidRefreshToken
+        }</span>
+
+        <span class="cov8" title="1">expiresAt, err := time.Parse(time.RFC3339, stored.ExpiresAt)
+        if err != nil || time.Now().After(expiresAt) </span><span class="cov0" title="0">{
+                return nil, ErrInvalidRefreshToken
+        }</span>
+
+        <span class="cov8" title="1">userID, err := uuid.Parse(stored.UserID)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, ErrInvalidRefreshToken
+        }</span>
+
+        <span class="cov8" title="1">user, err := s.userRepo.FindByID(userID)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, ErrInvalidRefreshToken
+        }</span>
+
+        <span class="cov8" title="1">accessToken, accessExpiresAt, err := s.createAccessToken(user)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">newRefreshToken, newRefreshTokenHash, newRefreshExpiresAt, err := newRefreshToken()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">if err := s.refreshTokenRepo.RevokeByHash(hash, float64(time.Now().Unix())); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">if err := s.refreshTokenRepo.Create(&amp;models.RefreshTokens{
+                UserID:    user.ID.String(),
+                TokenHash: newRefreshTokenHash,
+                ExpiresAt: newRefreshExpiresAt.Format(time.RFC3339),
+                RevokedAt: 0,
+        }); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return &amp;LoginResult{
+                AccessToken:  accessToken,
+                RefreshToken: newRefreshToken,
+                ExpiresIn:    int64(time.Until(accessExpiresAt).Seconds()),
+        }, nil</span>
+}
+
+func (s *AuthServiceImpl) createAccessToken(user *models.User) (string, time.Time, error) <span class="cov8" title="1">{
+        expiry := normalizeDuration(s.stateConfig.ExpiredsAt)
+        if expiry &lt;= 0 </span><span class="cov0" title="0">{
+                expiry = 15 * time.Minute
+        }</span>
+        <span class="cov8" title="1">expiresAt := time.Now().Add(expiry)
+
+        claims := jwt.RegisteredClaims{
+                Subject:   user.ID.String(),
+                Issuer:    s.stateConfig.Issuer,
+                IssuedAt:  jwt.NewNumericDate(time.Now()),
+                ExpiresAt: jwt.NewNumericDate(expiresAt),
+        }
+
+        token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+                "sub":   claims.Subject,
+                "iss":   claims.Issuer,
+                "iat":   claims.IssuedAt.Unix(),
+                "exp":   claims.ExpiresAt.Unix(),
+                "email": user.Email,
+                "role":  user.Role,
+        })
+
+        signed, err := token.SignedString([]byte(s.stateConfig.Secret))
+        if err != nil </span><span class="cov0" title="0">{
+                return "", time.Time{}, err
+        }</span>
+
+        <span class="cov8" title="1">return signed, expiresAt, nil</span>
+}
+
+func normalizeDuration(d time.Duration) time.Duration <span class="cov8" title="1">{
+        if d &gt; 0 &amp;&amp; d &lt; time.Second </span><span class="cov0" title="0">{
+                return d * time.Second
+        }</span>
+        <span class="cov8" title="1">return d</span>
+}
+
+func newRefreshToken() (string, string, time.Time, error) <span class="cov8" title="1">{
+        raw := make([]byte, 32)
+        if _, err := rand.Read(raw); err != nil </span><span class="cov0" title="0">{
+                return "", "", time.Time{}, err
+        }</span>
+        <span class="cov8" title="1">token := base64.RawURLEncoding.EncodeToString(raw)
+        hash := sha256.Sum256([]byte(token))
+        return token, hex.EncodeToString(hash[:]), time.Now().Add(refreshTokenTTL), nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package stock
+
+import (
+        "github.com/google/uuid"
+
+        "sun-stockanalysis-api/internal/models"
+        "sun-stockanalysis-api/internal/repository"
+)
+
+type StockService interface {
+        GetStock(id uuid.UUID) (*models.Stock, error)
+        CreateStock(input CreateStockInput) error
+}
+
+type StockServiceImpl struct {
+        repo repository.StockRepository
+}
+
+func NewStockService(repo repository.StockRepository) StockService <span class="cov8" title="1">{
+        return &amp;StockServiceImpl{repo: repo}
+}</span>
+
+func (s *StockServiceImpl) GetStock(id uuid.UUID) (*models.Stock, error) <span class="cov8" title="1">{
+        return s.repo.FindByID(id)
+}</span>
+
+func (s *StockServiceImpl) CreateStock(input CreateStockInput) error <span class="cov8" title="1">{
+        return s.repo.Create(&amp;models.Stock{
+                Symbol:    input.Body.Symbol,
+                Name:      input.Body.Name,
+                Sector:    input.Body.Sector,
+                Price:     input.Body.Price,
+                Exchange:  input.Body.Exchange,
+                AssetType: input.Body.AssetType,
+                Currency:  input.Body.Currency,
+        })
+}</span>
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">package handler
+
+import (
+        "encoding/json"
+        "fmt"
+        "log"
+        "net/http"
+        "strings"
+
+        "github.com/danielgtaylor/huma/v2"
+        "github.com/golang-jwt/jwt/v5"
+
+        common "sun-stockanalysis-api/internal/common"
+)
+
+type authContextKey struct{}
+
+var userIDContextKey authContextKey
+
+func authMiddleware(secret, issuer string) func(ctx huma.Context, next func(huma.Context)) <span class="cov0" title="0">{
+        return func(ctx huma.Context, next func(huma.Context)) </span><span class="cov0" title="0">{
+                if secret == "" </span><span class="cov0" title="0">{
+                        writeAuthError(ctx, http.StatusUnauthorized, "auth secret not configured")
+                        return
+                }</span>
+
+                <span class="cov0" title="0">authHeader := ctx.Header("Authorization")
+
+                if authHeader == "" || !strings.HasPrefix(strings.ToLower(authHeader), "bearer ") </span><span class="cov0" title="0">{
+                        writeAuthError(ctx, http.StatusUnauthorized, "missing or invalid authorization header")
+                        return
+                }</span>
+
+                <span class="cov0" title="0">tokenString := strings.TrimSpace(authHeader[len("bearer "):])
+
+                if tokenString == "" </span><span class="cov0" title="0">{
+                        writeAuthError(ctx, http.StatusUnauthorized, "missing token")
+                        return
+                }</span>
+
+                <span class="cov0" title="0">claims := &amp;jwt.RegisteredClaims{}
+
+                options := []jwt.ParserOption{
+                        jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}),
+                }
+                if issuer != "" </span><span class="cov0" title="0">{
+                        options = append(options, jwt.WithIssuer(issuer))
+                }</span>
+
+                <span class="cov0" title="0">token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) </span><span class="cov0" title="0">{
+                        if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok </span><span class="cov0" title="0">{
+                                return nil, fmt.Errorf("unexpected signing method")
+                        }</span>
+                        <span class="cov0" title="0">return []byte(secret), nil</span>
+                }, options...)
+
+                <span class="cov0" title="0">if err != nil || !token.Valid || claims.Subject == "" </span><span class="cov0" title="0">{
+                        log.Printf(
+                                "auth invalid token: err=%v valid=%v sub=%q iss=%q exp=%v iat=%v",
+                                err,
+                                token != nil &amp;&amp; token.Valid,
+                                claims.Subject,
+                                claims.Issuer,
+                                claims.ExpiresAt,
+                                claims.IssuedAt,
+                        )
+                        writeAuthError(ctx, http.StatusUnauthorized, "invalid token")
+                        return
+                }</span>
+
+                <span class="cov0" title="0">next(huma.WithValue(ctx, userIDContextKey, claims.Subject))</span>
+        }
+}
+
+func writeAuthError(ctx huma.Context, status int, message string) <span class="cov0" title="0">{
+        ctx.SetStatus(status)
+        ctx.SetHeader("Content-Type", "application/json; charset=utf-8")
+        _ = json.NewEncoder(ctx.BodyWriter()).Encode(common.NewErrorResponse(status, message))
+}</span>
+</pre>
+		
+		<pre class="file" id="file14" style="display: none">package handler
+
+import (
+        "net/http"
+
+        "github.com/danielgtaylor/huma/v2"
+        "github.com/google/uuid"
+
+        "sun-stockanalysis-api/internal/controllers"
+)
+
+const apiBasePath = "/v1"
+
+func v1Tags() []string <span class="cov0" title="0">{
+        return []string{"v1"}
+}</span>
+
+func RegisterRoutes(rootApi huma.API, controllers *controllers.Controllers, authSecret, authIssuer string) <span class="cov0" title="0">{
+        rootApi.UseMiddleware(requestIDMiddleware)
+
+        registerHealthHandlers(rootApi, controllers)
+        v1Api := huma.NewGroup(rootApi, apiBasePath)
+
+        registerV1(v1Api, controllers, authSecret, authIssuer)
+}</span>
+
+func registerHealthHandlers(api huma.API, controllers *controllers.Controllers) <span class="cov0" title="0">{
+        tags := []string{"Health Check"}
+
+        huma.Register(api, huma.Operation{
+                Path:   "/healthz",
+                Method: http.MethodGet,
+                Tags:   tags,
+        }, controllers.HealthController.Healthz)
+
+        huma.Register(api, huma.Operation{
+                Path:   "/readyz",
+                Method: http.MethodGet,
+                Tags:   tags,
+        }, controllers.HealthController.Readyz)
+}</span>
+
+func registerV1(api huma.API, controllers *controllers.Controllers, authSecret, authIssuer string) <span class="cov0" title="0">{
+        huma.Register(api, huma.Operation{
+                Method:  http.MethodPost,
+                Path:    "/register",
+                Summary: "Register",
+                Tags:    v1Tags(),
+        }, controllers.AuthController.Register)
+
+        huma.Register(api, huma.Operation{
+                Method:  http.MethodPost,
+                Path:    "/login",
+                Summary: "Login",
+                Tags:    v1Tags(),
+        }, controllers.AuthController.Login)
+
+        huma.Register(api, huma.Operation{
+                Method:  http.MethodPost,
+                Path:    "/refresh",
+                Summary: "Refresh access token",
+                Tags:    v1Tags(),
+        }, controllers.AuthController.Refresh)
+
+        protected := huma.NewGroup(api, "")
+        protected.UseMiddleware(authMiddleware(authSecret, authIssuer))
+
+        huma.Register(protected, huma.Operation{
+                Method:  http.MethodGet,
+                Path:    "/stocks/{id}",
+                Summary: "Get stock by ID",
+                Tags:    v1Tags(),
+        }, controllers.StockController.GetStock)
+
+        huma.Register(protected, huma.Operation{
+                Method:        http.MethodPost,
+                Path:          "/stocks",
+                Summary:       "Create stock",
+                Tags:          v1Tags(),
+                DefaultStatus: http.StatusCreated,
+        }, controllers.StockController.CreateStock)
+}</span>
+
+func requestIDMiddleware(ctx huma.Context, next func(huma.Context)) <span class="cov0" title="0">{
+        if ctx.Header("X-Request-Id") == "" </span><span class="cov0" title="0">{
+                ctx.SetHeader("X-Request-Id", uuid.NewString())
+        }</span>
+        <span class="cov0" title="0">next(ctx)</span>
+}
+</pre>
+		
+		<pre class="file" id="file15" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
+
+package auth_mock
+
+import (
+        auth "sun-stockanalysis-api/internal/domains/auth"
+
+        mock "github.com/stretchr/testify/mock"
+)
+
+// MockAuthService is an autogenerated mock type for the AuthService type
+type MockAuthService struct {
+        mock.Mock
+}
+
+type MockAuthService_Expecter struct {
+        mock *mock.Mock
+}
+
+func (_m *MockAuthService) EXPECT() *MockAuthService_Expecter <span class="cov0" title="0">{
+        return &amp;MockAuthService_Expecter{mock: &amp;_m.Mock}
+}</span>
+
+// Login provides a mock function with given fields: input
+func (_m *MockAuthService) Login(input auth.LoginInput) (*auth.LoginResult, error) <span class="cov0" title="0">{
+        ret := _m.Called(input)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Login")</span>
+        }
+
+        <span class="cov0" title="0">var r0 *auth.LoginResult
+        var r1 error
+        if rf, ok := ret.Get(0).(func(auth.LoginInput) (*auth.LoginResult, error)); ok </span><span class="cov0" title="0">{
+                return rf(input)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(auth.LoginInput) *auth.LoginResult); ok </span><span class="cov0" title="0">{
+                r0 = rf(input)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).(*auth.LoginResult)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(auth.LoginInput) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(input)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockAuthService_Login_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Login'
+type MockAuthService_Login_Call struct {
+        *mock.Call
+}
+
+// Login is a helper method to define mock.On call
+//   - input auth.LoginInput
+func (_e *MockAuthService_Expecter) Login(input interface{}) *MockAuthService_Login_Call <span class="cov0" title="0">{
+        return &amp;MockAuthService_Login_Call{Call: _e.mock.On("Login", input)}
+}</span>
+
+func (_c *MockAuthService_Login_Call) Run(run func(input auth.LoginInput)) *MockAuthService_Login_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(auth.LoginInput))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockAuthService_Login_Call) Return(_a0 *auth.LoginResult, _a1 error) *MockAuthService_Login_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockAuthService_Login_Call) RunAndReturn(run func(auth.LoginInput) (*auth.LoginResult, error)) *MockAuthService_Login_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// Refresh provides a mock function with given fields: input
+func (_m *MockAuthService) Refresh(input auth.RefreshInput) (*auth.LoginResult, error) <span class="cov0" title="0">{
+        ret := _m.Called(input)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Refresh")</span>
+        }
+
+        <span class="cov0" title="0">var r0 *auth.LoginResult
+        var r1 error
+        if rf, ok := ret.Get(0).(func(auth.RefreshInput) (*auth.LoginResult, error)); ok </span><span class="cov0" title="0">{
+                return rf(input)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(auth.RefreshInput) *auth.LoginResult); ok </span><span class="cov0" title="0">{
+                r0 = rf(input)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).(*auth.LoginResult)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(auth.RefreshInput) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(input)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockAuthService_Refresh_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Refresh'
+type MockAuthService_Refresh_Call struct {
+        *mock.Call
+}
+
+// Refresh is a helper method to define mock.On call
+//   - input auth.RefreshInput
+func (_e *MockAuthService_Expecter) Refresh(input interface{}) *MockAuthService_Refresh_Call <span class="cov0" title="0">{
+        return &amp;MockAuthService_Refresh_Call{Call: _e.mock.On("Refresh", input)}
+}</span>
+
+func (_c *MockAuthService_Refresh_Call) Run(run func(input auth.RefreshInput)) *MockAuthService_Refresh_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(auth.RefreshInput))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockAuthService_Refresh_Call) Return(_a0 *auth.LoginResult, _a1 error) *MockAuthService_Refresh_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockAuthService_Refresh_Call) RunAndReturn(run func(auth.RefreshInput) (*auth.LoginResult, error)) *MockAuthService_Refresh_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// Register provides a mock function with given fields: input
+func (_m *MockAuthService) Register(input auth.RegisterInput) (*auth.RegisterResult, error) <span class="cov0" title="0">{
+        ret := _m.Called(input)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Register")</span>
+        }
+
+        <span class="cov0" title="0">var r0 *auth.RegisterResult
+        var r1 error
+        if rf, ok := ret.Get(0).(func(auth.RegisterInput) (*auth.RegisterResult, error)); ok </span><span class="cov0" title="0">{
+                return rf(input)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(auth.RegisterInput) *auth.RegisterResult); ok </span><span class="cov0" title="0">{
+                r0 = rf(input)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).(*auth.RegisterResult)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(auth.RegisterInput) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(input)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockAuthService_Register_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Register'
+type MockAuthService_Register_Call struct {
+        *mock.Call
+}
+
+// Register is a helper method to define mock.On call
+//   - input auth.RegisterInput
+func (_e *MockAuthService_Expecter) Register(input interface{}) *MockAuthService_Register_Call <span class="cov0" title="0">{
+        return &amp;MockAuthService_Register_Call{Call: _e.mock.On("Register", input)}
+}</span>
+
+func (_c *MockAuthService_Register_Call) Run(run func(input auth.RegisterInput)) *MockAuthService_Register_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(auth.RegisterInput))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockAuthService_Register_Call) Return(_a0 *auth.RegisterResult, _a1 error) *MockAuthService_Register_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockAuthService_Register_Call) RunAndReturn(run func(auth.RegisterInput) (*auth.RegisterResult, error)) *MockAuthService_Register_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// NewMockAuthService creates a new instance of MockAuthService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockAuthService(t interface {
+        mock.TestingT
+        Cleanup(func())
+}) *MockAuthService <span class="cov0" title="0">{
+        mock := &amp;MockAuthService{}
+        mock.Mock.Test(t)
+
+        t.Cleanup(func() </span><span class="cov0" title="0">{ mock.AssertExpectations(t) }</span>)
+
+        <span class="cov0" title="0">return mock</span>
+}
+</pre>
+		
+		<pre class="file" id="file16" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
+
+package stock_mock
+
+import (
+        models "sun-stockanalysis-api/internal/models"
+
+        mock "github.com/stretchr/testify/mock"
+
+        stock "sun-stockanalysis-api/internal/domains/stock"
+
+        uuid "github.com/google/uuid"
+)
+
+// MockStockService is an autogenerated mock type for the StockService type
+type MockStockService struct {
+        mock.Mock
+}
+
+type MockStockService_Expecter struct {
+        mock *mock.Mock
+}
+
+func (_m *MockStockService) EXPECT() *MockStockService_Expecter <span class="cov0" title="0">{
+        return &amp;MockStockService_Expecter{mock: &amp;_m.Mock}
+}</span>
+
+// CreateStock provides a mock function with given fields: input
+func (_m *MockStockService) CreateStock(input stock.CreateStockInput) error <span class="cov0" title="0">{
+        ret := _m.Called(input)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for CreateStock")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(stock.CreateStockInput) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(input)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockStockService_CreateStock_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateStock'
+type MockStockService_CreateStock_Call struct {
+        *mock.Call
+}
+
+// CreateStock is a helper method to define mock.On call
+//   - input stock.CreateStockInput
+func (_e *MockStockService_Expecter) CreateStock(input interface{}) *MockStockService_CreateStock_Call <span class="cov0" title="0">{
+        return &amp;MockStockService_CreateStock_Call{Call: _e.mock.On("CreateStock", input)}
+}</span>
+
+func (_c *MockStockService_CreateStock_Call) Run(run func(input stock.CreateStockInput)) *MockStockService_CreateStock_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(stock.CreateStockInput))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStockService_CreateStock_Call) Return(_a0 error) *MockStockService_CreateStock_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockStockService_CreateStock_Call) RunAndReturn(run func(stock.CreateStockInput) error) *MockStockService_CreateStock_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// GetStock provides a mock function with given fields: id
+func (_m *MockStockService) GetStock(id uuid.UUID) (*models.Stock, error) <span class="cov0" title="0">{
+        ret := _m.Called(id)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for GetStock")</span>
+        }
+
+        <span class="cov0" title="0">var r0 *models.Stock
+        var r1 error
+        if rf, ok := ret.Get(0).(func(uuid.UUID) (*models.Stock, error)); ok </span><span class="cov0" title="0">{
+                return rf(id)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(uuid.UUID) *models.Stock); ok </span><span class="cov0" title="0">{
+                r0 = rf(id)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).(*models.Stock)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(uuid.UUID) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(id)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockStockService_GetStock_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetStock'
+type MockStockService_GetStock_Call struct {
+        *mock.Call
+}
+
+// GetStock is a helper method to define mock.On call
+//   - id uuid.UUID
+func (_e *MockStockService_Expecter) GetStock(id interface{}) *MockStockService_GetStock_Call <span class="cov0" title="0">{
+        return &amp;MockStockService_GetStock_Call{Call: _e.mock.On("GetStock", id)}
+}</span>
+
+func (_c *MockStockService_GetStock_Call) Run(run func(id uuid.UUID)) *MockStockService_GetStock_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(uuid.UUID))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStockService_GetStock_Call) Return(_a0 *models.Stock, _a1 error) *MockStockService_GetStock_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockStockService_GetStock_Call) RunAndReturn(run func(uuid.UUID) (*models.Stock, error)) *MockStockService_GetStock_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// NewMockStockService creates a new instance of MockStockService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockStockService(t interface {
+        mock.TestingT
+        Cleanup(func())
+}) *MockStockService <span class="cov0" title="0">{
+        mock := &amp;MockStockService{}
+        mock.Mock.Test(t)
+
+        t.Cleanup(func() </span><span class="cov0" title="0">{ mock.AssertExpectations(t) }</span>)
+
+        <span class="cov0" title="0">return mock</span>
+}
+</pre>
+		
+		<pre class="file" id="file17" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
+
+package repository_mock
+
+import (
+        context "context"
+
+        mock "github.com/stretchr/testify/mock"
+)
+
+// MockHealthRepository is an autogenerated mock type for the HealthRepository type
+type MockHealthRepository struct {
+        mock.Mock
+}
+
+type MockHealthRepository_Expecter struct {
+        mock *mock.Mock
+}
+
+func (_m *MockHealthRepository) EXPECT() *MockHealthRepository_Expecter <span class="cov0" title="0">{
+        return &amp;MockHealthRepository_Expecter{mock: &amp;_m.Mock}
+}</span>
+
+// CheckDBStatus provides a mock function with given fields: ctx
+func (_m *MockHealthRepository) CheckDBStatus(ctx context.Context) error <span class="cov0" title="0">{
+        ret := _m.Called(ctx)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for CheckDBStatus")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(context.Context) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(ctx)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockHealthRepository_CheckDBStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CheckDBStatus'
+type MockHealthRepository_CheckDBStatus_Call struct {
+        *mock.Call
+}
+
+// CheckDBStatus is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockHealthRepository_Expecter) CheckDBStatus(ctx interface{}) *MockHealthRepository_CheckDBStatus_Call <span class="cov0" title="0">{
+        return &amp;MockHealthRepository_CheckDBStatus_Call{Call: _e.mock.On("CheckDBStatus", ctx)}
+}</span>
+
+func (_c *MockHealthRepository_CheckDBStatus_Call) Run(run func(ctx context.Context)) *MockHealthRepository_CheckDBStatus_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(context.Context))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockHealthRepository_CheckDBStatus_Call) Return(_a0 error) *MockHealthRepository_CheckDBStatus_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockHealthRepository_CheckDBStatus_Call) RunAndReturn(run func(context.Context) error) *MockHealthRepository_CheckDBStatus_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// NewMockHealthRepository creates a new instance of MockHealthRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockHealthRepository(t interface {
+        mock.TestingT
+        Cleanup(func())
+}) *MockHealthRepository <span class="cov0" title="0">{
+        mock := &amp;MockHealthRepository{}
+        mock.Mock.Test(t)
+
+        t.Cleanup(func() </span><span class="cov0" title="0">{ mock.AssertExpectations(t) }</span>)
+
+        <span class="cov0" title="0">return mock</span>
+}
+</pre>
+		
+		<pre class="file" id="file18" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
+
+package repository_mock
+
+import (
+        models "sun-stockanalysis-api/internal/models"
+
+        mock "github.com/stretchr/testify/mock"
+)
+
+// MockRefreshTokenRepository is an autogenerated mock type for the RefreshTokenRepository type
+type MockRefreshTokenRepository struct {
+        mock.Mock
+}
+
+type MockRefreshTokenRepository_Expecter struct {
+        mock *mock.Mock
+}
+
+func (_m *MockRefreshTokenRepository) EXPECT() *MockRefreshTokenRepository_Expecter <span class="cov0" title="0">{
+        return &amp;MockRefreshTokenRepository_Expecter{mock: &amp;_m.Mock}
+}</span>
+
+// Create provides a mock function with given fields: token
+func (_m *MockRefreshTokenRepository) Create(token *models.RefreshTokens) error <span class="cov0" title="0">{
+        ret := _m.Called(token)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Create")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(*models.RefreshTokens) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(token)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockRefreshTokenRepository_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Create'
+type MockRefreshTokenRepository_Create_Call struct {
+        *mock.Call
+}
+
+// Create is a helper method to define mock.On call
+//   - token *models.RefreshTokens
+func (_e *MockRefreshTokenRepository_Expecter) Create(token interface{}) *MockRefreshTokenRepository_Create_Call <span class="cov0" title="0">{
+        return &amp;MockRefreshTokenRepository_Create_Call{Call: _e.mock.On("Create", token)}
+}</span>
+
+func (_c *MockRefreshTokenRepository_Create_Call) Run(run func(token *models.RefreshTokens)) *MockRefreshTokenRepository_Create_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(*models.RefreshTokens))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockRefreshTokenRepository_Create_Call) Return(_a0 error) *MockRefreshTokenRepository_Create_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockRefreshTokenRepository_Create_Call) RunAndReturn(run func(*models.RefreshTokens) error) *MockRefreshTokenRepository_Create_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// FindByHash provides a mock function with given fields: hash
+func (_m *MockRefreshTokenRepository) FindByHash(hash string) (*models.RefreshTokens, error) <span class="cov0" title="0">{
+        ret := _m.Called(hash)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for FindByHash")</span>
+        }
+
+        <span class="cov0" title="0">var r0 *models.RefreshTokens
+        var r1 error
+        if rf, ok := ret.Get(0).(func(string) (*models.RefreshTokens, error)); ok </span><span class="cov0" title="0">{
+                return rf(hash)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(string) *models.RefreshTokens); ok </span><span class="cov0" title="0">{
+                r0 = rf(hash)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).(*models.RefreshTokens)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(string) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(hash)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockRefreshTokenRepository_FindByHash_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByHash'
+type MockRefreshTokenRepository_FindByHash_Call struct {
+        *mock.Call
+}
+
+// FindByHash is a helper method to define mock.On call
+//   - hash string
+func (_e *MockRefreshTokenRepository_Expecter) FindByHash(hash interface{}) *MockRefreshTokenRepository_FindByHash_Call <span class="cov0" title="0">{
+        return &amp;MockRefreshTokenRepository_FindByHash_Call{Call: _e.mock.On("FindByHash", hash)}
+}</span>
+
+func (_c *MockRefreshTokenRepository_FindByHash_Call) Run(run func(hash string)) *MockRefreshTokenRepository_FindByHash_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockRefreshTokenRepository_FindByHash_Call) Return(_a0 *models.RefreshTokens, _a1 error) *MockRefreshTokenRepository_FindByHash_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockRefreshTokenRepository_FindByHash_Call) RunAndReturn(run func(string) (*models.RefreshTokens, error)) *MockRefreshTokenRepository_FindByHash_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// RevokeByHash provides a mock function with given fields: hash, revokedAt
+func (_m *MockRefreshTokenRepository) RevokeByHash(hash string, revokedAt float64) error <span class="cov0" title="0">{
+        ret := _m.Called(hash, revokedAt)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for RevokeByHash")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(string, float64) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(hash, revokedAt)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockRefreshTokenRepository_RevokeByHash_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RevokeByHash'
+type MockRefreshTokenRepository_RevokeByHash_Call struct {
+        *mock.Call
+}
+
+// RevokeByHash is a helper method to define mock.On call
+//   - hash string
+//   - revokedAt float64
+func (_e *MockRefreshTokenRepository_Expecter) RevokeByHash(hash interface{}, revokedAt interface{}) *MockRefreshTokenRepository_RevokeByHash_Call <span class="cov0" title="0">{
+        return &amp;MockRefreshTokenRepository_RevokeByHash_Call{Call: _e.mock.On("RevokeByHash", hash, revokedAt)}
+}</span>
+
+func (_c *MockRefreshTokenRepository_RevokeByHash_Call) Run(run func(hash string, revokedAt float64)) *MockRefreshTokenRepository_RevokeByHash_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string), args[1].(float64))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockRefreshTokenRepository_RevokeByHash_Call) Return(_a0 error) *MockRefreshTokenRepository_RevokeByHash_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockRefreshTokenRepository_RevokeByHash_Call) RunAndReturn(run func(string, float64) error) *MockRefreshTokenRepository_RevokeByHash_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// NewMockRefreshTokenRepository creates a new instance of MockRefreshTokenRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockRefreshTokenRepository(t interface {
+        mock.TestingT
+        Cleanup(func())
+}) *MockRefreshTokenRepository <span class="cov0" title="0">{
+        mock := &amp;MockRefreshTokenRepository{}
+        mock.Mock.Test(t)
+
+        t.Cleanup(func() </span><span class="cov0" title="0">{ mock.AssertExpectations(t) }</span>)
+
+        <span class="cov0" title="0">return mock</span>
+}
+</pre>
+		
+		<pre class="file" id="file19" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
+
+package repository_mock
+
+import (
+        models "sun-stockanalysis-api/internal/models"
+
+        mock "github.com/stretchr/testify/mock"
+
+        uuid "github.com/google/uuid"
+)
+
+// MockStockRepository is an autogenerated mock type for the StockRepository type
+type MockStockRepository struct {
+        mock.Mock
+}
+
+type MockStockRepository_Expecter struct {
+        mock *mock.Mock
+}
+
+func (_m *MockStockRepository) EXPECT() *MockStockRepository_Expecter <span class="cov0" title="0">{
+        return &amp;MockStockRepository_Expecter{mock: &amp;_m.Mock}
+}</span>
+
+// Create provides a mock function with given fields: stock
+func (_m *MockStockRepository) Create(stock *models.Stock) error <span class="cov0" title="0">{
+        ret := _m.Called(stock)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Create")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(*models.Stock) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(stock)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockStockRepository_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Create'
+type MockStockRepository_Create_Call struct {
+        *mock.Call
+}
+
+// Create is a helper method to define mock.On call
+//   - stock *models.Stock
+func (_e *MockStockRepository_Expecter) Create(stock interface{}) *MockStockRepository_Create_Call <span class="cov0" title="0">{
+        return &amp;MockStockRepository_Create_Call{Call: _e.mock.On("Create", stock)}
+}</span>
+
+func (_c *MockStockRepository_Create_Call) Run(run func(stock *models.Stock)) *MockStockRepository_Create_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(*models.Stock))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStockRepository_Create_Call) Return(_a0 error) *MockStockRepository_Create_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockStockRepository_Create_Call) RunAndReturn(run func(*models.Stock) error) *MockStockRepository_Create_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// FindByID provides a mock function with given fields: id
+func (_m *MockStockRepository) FindByID(id uuid.UUID) (*models.Stock, error) <span class="cov0" title="0">{
+        ret := _m.Called(id)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for FindByID")</span>
+        }
+
+        <span class="cov0" title="0">var r0 *models.Stock
+        var r1 error
+        if rf, ok := ret.Get(0).(func(uuid.UUID) (*models.Stock, error)); ok </span><span class="cov0" title="0">{
+                return rf(id)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(uuid.UUID) *models.Stock); ok </span><span class="cov0" title="0">{
+                r0 = rf(id)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).(*models.Stock)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(uuid.UUID) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(id)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockStockRepository_FindByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByID'
+type MockStockRepository_FindByID_Call struct {
+        *mock.Call
+}
+
+// FindByID is a helper method to define mock.On call
+//   - id uuid.UUID
+func (_e *MockStockRepository_Expecter) FindByID(id interface{}) *MockStockRepository_FindByID_Call <span class="cov0" title="0">{
+        return &amp;MockStockRepository_FindByID_Call{Call: _e.mock.On("FindByID", id)}
+}</span>
+
+func (_c *MockStockRepository_FindByID_Call) Run(run func(id uuid.UUID)) *MockStockRepository_FindByID_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(uuid.UUID))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStockRepository_FindByID_Call) Return(_a0 *models.Stock, _a1 error) *MockStockRepository_FindByID_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockStockRepository_FindByID_Call) RunAndReturn(run func(uuid.UUID) (*models.Stock, error)) *MockStockRepository_FindByID_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// NewMockStockRepository creates a new instance of MockStockRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockStockRepository(t interface {
+        mock.TestingT
+        Cleanup(func())
+}) *MockStockRepository <span class="cov0" title="0">{
+        mock := &amp;MockStockRepository{}
+        mock.Mock.Test(t)
+
+        t.Cleanup(func() </span><span class="cov0" title="0">{ mock.AssertExpectations(t) }</span>)
+
+        <span class="cov0" title="0">return mock</span>
+}
+</pre>
+		
+		<pre class="file" id="file20" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
+
+package repository_mock
+
+import (
+        models "sun-stockanalysis-api/internal/models"
+
+        mock "github.com/stretchr/testify/mock"
+
+        time "time"
+
+        uuid "github.com/google/uuid"
+)
+
+// MockUserRepository is an autogenerated mock type for the UserRepository type
+type MockUserRepository struct {
+        mock.Mock
+}
+
+type MockUserRepository_Expecter struct {
+        mock *mock.Mock
+}
+
+func (_m *MockUserRepository) EXPECT() *MockUserRepository_Expecter <span class="cov0" title="0">{
+        return &amp;MockUserRepository_Expecter{mock: &amp;_m.Mock}
+}</span>
+
+// Create provides a mock function with given fields: user
+func (_m *MockUserRepository) Create(user *models.User) error <span class="cov0" title="0">{
+        ret := _m.Called(user)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Create")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(*models.User) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(user)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockUserRepository_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Create'
+type MockUserRepository_Create_Call struct {
+        *mock.Call
+}
+
+// Create is a helper method to define mock.On call
+//   - user *models.User
+func (_e *MockUserRepository_Expecter) Create(user interface{}) *MockUserRepository_Create_Call <span class="cov0" title="0">{
+        return &amp;MockUserRepository_Create_Call{Call: _e.mock.On("Create", user)}
+}</span>
+
+func (_c *MockUserRepository_Create_Call) Run(run func(user *models.User)) *MockUserRepository_Create_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(*models.User))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockUserRepository_Create_Call) Return(_a0 error) *MockUserRepository_Create_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockUserRepository_Create_Call) RunAndReturn(run func(*models.User) error) *MockUserRepository_Create_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// ExistsByEmail provides a mock function with given fields: email
+func (_m *MockUserRepository) ExistsByEmail(email string) (bool, error) <span class="cov0" title="0">{
+        ret := _m.Called(email)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for ExistsByEmail")</span>
+        }
+
+        <span class="cov0" title="0">var r0 bool
+        var r1 error
+        if rf, ok := ret.Get(0).(func(string) (bool, error)); ok </span><span class="cov0" title="0">{
+                return rf(email)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(string) bool); ok </span><span class="cov0" title="0">{
+                r0 = rf(email)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Get(0).(bool)
+        }</span>
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(string) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(email)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockUserRepository_ExistsByEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExistsByEmail'
+type MockUserRepository_ExistsByEmail_Call struct {
+        *mock.Call
+}
+
+// ExistsByEmail is a helper method to define mock.On call
+//   - email string
+func (_e *MockUserRepository_Expecter) ExistsByEmail(email interface{}) *MockUserRepository_ExistsByEmail_Call <span class="cov0" title="0">{
+        return &amp;MockUserRepository_ExistsByEmail_Call{Call: _e.mock.On("ExistsByEmail", email)}
+}</span>
+
+func (_c *MockUserRepository_ExistsByEmail_Call) Run(run func(email string)) *MockUserRepository_ExistsByEmail_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockUserRepository_ExistsByEmail_Call) Return(_a0 bool, _a1 error) *MockUserRepository_ExistsByEmail_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockUserRepository_ExistsByEmail_Call) RunAndReturn(run func(string) (bool, error)) *MockUserRepository_ExistsByEmail_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// FindByEmail provides a mock function with given fields: email
+func (_m *MockUserRepository) FindByEmail(email string) (*models.User, error) <span class="cov0" title="0">{
+        ret := _m.Called(email)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for FindByEmail")</span>
+        }
+
+        <span class="cov0" title="0">var r0 *models.User
+        var r1 error
+        if rf, ok := ret.Get(0).(func(string) (*models.User, error)); ok </span><span class="cov0" title="0">{
+                return rf(email)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(string) *models.User); ok </span><span class="cov0" title="0">{
+                r0 = rf(email)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).(*models.User)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(string) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(email)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockUserRepository_FindByEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByEmail'
+type MockUserRepository_FindByEmail_Call struct {
+        *mock.Call
+}
+
+// FindByEmail is a helper method to define mock.On call
+//   - email string
+func (_e *MockUserRepository_Expecter) FindByEmail(email interface{}) *MockUserRepository_FindByEmail_Call <span class="cov0" title="0">{
+        return &amp;MockUserRepository_FindByEmail_Call{Call: _e.mock.On("FindByEmail", email)}
+}</span>
+
+func (_c *MockUserRepository_FindByEmail_Call) Run(run func(email string)) *MockUserRepository_FindByEmail_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockUserRepository_FindByEmail_Call) Return(_a0 *models.User, _a1 error) *MockUserRepository_FindByEmail_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockUserRepository_FindByEmail_Call) RunAndReturn(run func(string) (*models.User, error)) *MockUserRepository_FindByEmail_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// FindByID provides a mock function with given fields: id
+func (_m *MockUserRepository) FindByID(id uuid.UUID) (*models.User, error) <span class="cov0" title="0">{
+        ret := _m.Called(id)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for FindByID")</span>
+        }
+
+        <span class="cov0" title="0">var r0 *models.User
+        var r1 error
+        if rf, ok := ret.Get(0).(func(uuid.UUID) (*models.User, error)); ok </span><span class="cov0" title="0">{
+                return rf(id)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(uuid.UUID) *models.User); ok </span><span class="cov0" title="0">{
+                r0 = rf(id)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).(*models.User)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(uuid.UUID) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(id)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockUserRepository_FindByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByID'
+type MockUserRepository_FindByID_Call struct {
+        *mock.Call
+}
+
+// FindByID is a helper method to define mock.On call
+//   - id uuid.UUID
+func (_e *MockUserRepository_Expecter) FindByID(id interface{}) *MockUserRepository_FindByID_Call <span class="cov0" title="0">{
+        return &amp;MockUserRepository_FindByID_Call{Call: _e.mock.On("FindByID", id)}
+}</span>
+
+func (_c *MockUserRepository_FindByID_Call) Run(run func(id uuid.UUID)) *MockUserRepository_FindByID_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(uuid.UUID))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockUserRepository_FindByID_Call) Return(_a0 *models.User, _a1 error) *MockUserRepository_FindByID_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockUserRepository_FindByID_Call) RunAndReturn(run func(uuid.UUID) (*models.User, error)) *MockUserRepository_FindByID_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// UpdateLastLogin provides a mock function with given fields: id, when
+func (_m *MockUserRepository) UpdateLastLogin(id uuid.UUID, when time.Time) error <span class="cov0" title="0">{
+        ret := _m.Called(id, when)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for UpdateLastLogin")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(uuid.UUID, time.Time) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(id, when)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockUserRepository_UpdateLastLogin_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateLastLogin'
+type MockUserRepository_UpdateLastLogin_Call struct {
+        *mock.Call
+}
+
+// UpdateLastLogin is a helper method to define mock.On call
+//   - id uuid.UUID
+//   - when time.Time
+func (_e *MockUserRepository_Expecter) UpdateLastLogin(id interface{}, when interface{}) *MockUserRepository_UpdateLastLogin_Call <span class="cov0" title="0">{
+        return &amp;MockUserRepository_UpdateLastLogin_Call{Call: _e.mock.On("UpdateLastLogin", id, when)}
+}</span>
+
+func (_c *MockUserRepository_UpdateLastLogin_Call) Run(run func(id uuid.UUID, when time.Time)) *MockUserRepository_UpdateLastLogin_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(uuid.UUID), args[1].(time.Time))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockUserRepository_UpdateLastLogin_Call) Return(_a0 error) *MockUserRepository_UpdateLastLogin_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockUserRepository_UpdateLastLogin_Call) RunAndReturn(run func(uuid.UUID, time.Time) error) *MockUserRepository_UpdateLastLogin_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// NewMockUserRepository creates a new instance of MockUserRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockUserRepository(t interface {
+        mock.TestingT
+        Cleanup(func())
+}) *MockUserRepository <span class="cov0" title="0">{
+        mock := &amp;MockUserRepository{}
+        mock.Mock.Test(t)
+
+        t.Cleanup(func() </span><span class="cov0" title="0">{ mock.AssertExpectations(t) }</span>)
+
+        <span class="cov0" title="0">return mock</span>
+}
+</pre>
+		
+		<pre class="file" id="file21" style="display: none">package repository
+
+import (
+        "context"
+
+        "sun-stockanalysis-api/internal/database"
+        "gorm.io/gorm"
+)
+
+type HealthRepository interface {
+        CheckDBStatus(ctx context.Context) error
+}
+
+type HealthRepositoryImpl struct {
+        DB *gorm.DB
+}
+
+func (hr HealthRepositoryImpl) CheckDBStatus(ctx context.Context) error <span class="cov0" title="0">{
+
+        return database.CheckPostgresHealth(hr.DB, ctx)
+}</span>
+
+func NewHealthRepository(DB *gorm.DB) HealthRepository <span class="cov0" title="0">{
+        return HealthRepositoryImpl{
+                DB: DB,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file22" style="display: none">package repository
+
+import (
+        "gorm.io/gorm"
+
+        "sun-stockanalysis-api/internal/models"
+)
+
+type RefreshTokenRepository interface {
+        Create(token *models.RefreshTokens) error
+        FindByHash(hash string) (*models.RefreshTokens, error)
+        RevokeByHash(hash string, revokedAt float64) error
+}
+
+type RefreshTokenRepositoryImpl struct {
+        db *gorm.DB
+}
+
+func NewRefreshTokenRepository(db *gorm.DB) RefreshTokenRepository <span class="cov0" title="0">{
+        return &amp;RefreshTokenRepositoryImpl{db: db}
+}</span>
+
+func (r *RefreshTokenRepositoryImpl) Create(token *models.RefreshTokens) error <span class="cov0" title="0">{
+        return r.db.Create(token).Error
+}</span>
+
+func (r *RefreshTokenRepositoryImpl) FindByHash(hash string) (*models.RefreshTokens, error) <span class="cov0" title="0">{
+        var t models.RefreshTokens
+        if err := r.db.First(&amp;t, "token_hash = ?", hash).Error; err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">return &amp;t, nil</span>
+}
+
+func (r *RefreshTokenRepositoryImpl) RevokeByHash(hash string, revokedAt float64) error <span class="cov0" title="0">{
+        return r.db.Model(&amp;models.RefreshTokens{}).
+                Where("token_hash = ?", hash).
+                Update("revoked_at", revokedAt).Error
+}</span>
+</pre>
+		
+		<pre class="file" id="file23" style="display: none">package repository
+
+import (
+        "github.com/google/uuid"
+        "gorm.io/gorm"
+
+        "sun-stockanalysis-api/internal/models"
+)
+
+type StockRepository interface {
+        FindByID(id uuid.UUID) (*models.Stock, error)
+        Create(stock *models.Stock) error
+}
+
+type StockRepositoryImpl struct {
+        db *gorm.DB // GORM DB instance
+}
+
+func NewStockRepository(db *gorm.DB) StockRepository <span class="cov0" title="0">{
+        return &amp;StockRepositoryImpl{db: db}
+}</span>
+
+func (r *StockRepositoryImpl) FindByID(id uuid.UUID) (*models.Stock, error) <span class="cov0" title="0">{
+        var s models.Stock
+        if err := r.db.First(&amp;s, "id = ?", id).Error; err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">return &amp;s, nil</span>
+}
+
+func (r *StockRepositoryImpl) Create(s *models.Stock) error <span class="cov0" title="0">{
+        return r.db.Create(s).Error
+}</span>
+</pre>
+		
+		<pre class="file" id="file24" style="display: none">package repository
+
+import (
+        "time"
+
+        "github.com/google/uuid"
+        "gorm.io/gorm"
+
+        "sun-stockanalysis-api/internal/models"
+)
+
+type UserRepository interface {
+        FindByEmail(email string) (*models.User, error)
+        ExistsByEmail(email string) (bool, error)
+        Create(user *models.User) error
+        FindByID(id uuid.UUID) (*models.User, error)
+        UpdateLastLogin(id uuid.UUID, when time.Time) error
+}
+
+type UserRepositoryImpl struct {
+        db *gorm.DB
+}
+
+func NewUserRepository(db *gorm.DB) UserRepository <span class="cov0" title="0">{
+        return &amp;UserRepositoryImpl{db: db}
+}</span>
+
+func (r *UserRepositoryImpl) FindByEmail(email string) (*models.User, error) <span class="cov0" title="0">{
+        var u models.User
+        if err := r.db.First(&amp;u, "email = ? AND is_archive = false", email).Error; err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">return &amp;u, nil</span>
+}
+
+func (r *UserRepositoryImpl) FindByID(id uuid.UUID) (*models.User, error) <span class="cov0" title="0">{
+        var u models.User
+        if err := r.db.First(&amp;u, "id = ? AND is_archive = false", id).Error; err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">return &amp;u, nil</span>
+}
+
+func (r *UserRepositoryImpl) ExistsByEmail(email string) (bool, error) <span class="cov0" title="0">{
+        var count int64
+        if err := r.db.Model(&amp;models.User{}).
+                Where("email = ? AND is_archive = false", email).
+                Count(&amp;count).Error; err != nil </span><span class="cov0" title="0">{
+                return false, err
+        }</span>
+        <span class="cov0" title="0">return count &gt; 0, nil</span>
+}
+
+func (r *UserRepositoryImpl) Create(user *models.User) error <span class="cov0" title="0">{
+        return r.db.Create(user).Error
+}</span>
+
+func (r *UserRepositoryImpl) UpdateLastLogin(id uuid.UUID, when time.Time) error <span class="cov0" title="0">{
+        return r.db.Model(&amp;models.User{}).
+                Where("id = ?", id).
+                Update("last_login_at", when).Error
+}</span>
+</pre>
+		
+		<pre class="file" id="file25" style="display: none">package server
+
+import (
+        "fmt"
+        "log"
+        "time"
+
+        "github.com/danielgtaylor/huma/v2"
+        "github.com/danielgtaylor/huma/v2/adapters/humafiber"
+        "github.com/gofiber/fiber/v2"
+        "github.com/gofiber/fiber/v2/middleware/logger"
+        "github.com/gofiber/fiber/v2/middleware/timeout"
+        "go.opentelemetry.io/otel"
+
+        common "sun-stockanalysis-api/internal/common"
+        "sun-stockanalysis-api/internal/controllers"
+        "sun-stockanalysis-api/internal/handler"
+)
+
+type Server struct {
+        App    *fiber.App
+        Api    huma.API
+        Config *ServerConfig
+}
+
+type ServerTitle string
+type ServerVersion string
+
+type ServerConfig struct {
+        Title                   ServerTitle
+        Version                 ServerVersion
+        Port                    string
+        EnableTrustedProxyCheck bool
+        TrustedProxies          []string
+        MaxPayloadSizeKB        int
+        TimeoutSeconds          int
+        AuthSecret              string
+        AuthIssuer              string
+}
+
+const (
+        apiKeySchemeName = "BearerAuth"
+)
+
+func newHumaConfig(title string, version string) huma.Config <span class="cov0" title="0">{
+        huma.NewError = func(status int, msg string, errs ...error) huma.StatusError </span><span class="cov0" title="0">{
+                return common.NewErrorResponse(status, msg, errs...)
+        }</span>
+
+        <span class="cov0" title="0">cfg := huma.DefaultConfig(title, version)
+        cfg.DocsPath = ""
+        cfg.CreateHooks = nil
+        cfg.Transformers = nil
+        cfg.OnAddOperation = nil
+        cfg.OpenAPI.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
+                apiKeySchemeName: {
+                        Type:         "http",
+                        Scheme:       "bearer",
+                        BearerFormat: "JWT",
+                },
+        }
+        cfg.OpenAPI.Security = []map[string][]string{
+                {apiKeySchemeName: {}},
+        }
+        return cfg</span>
+}
+
+func NewServer(serverConfig ServerConfig, controllers *controllers.Controllers) *Server <span class="cov0" title="0">{
+        humaConfig := newHumaConfig(string(serverConfig.Title), string(serverConfig.Version))
+        app := fiber.New(fiber.Config{
+                DisableStartupMessage:   true,
+                EnableTrustedProxyCheck: serverConfig.EnableTrustedProxyCheck,
+                TrustedProxies:          serverConfig.TrustedProxies,
+                ProxyHeader:             fiber.HeaderXForwardedFor,
+                BodyLimit:               serverConfig.MaxPayloadSizeKB * 1024,
+        })
+
+        api := humafiber.New(app, humaConfig)
+        handler.RegisterRoutes(api, controllers, serverConfig.AuthSecret, serverConfig.AuthIssuer)
+
+        app.Use(openTelemetryMiddleware())
+        app.Use(logger.New())
+        app.Use(appLoggerMiddleware())
+
+        if serverConfig.TimeoutSeconds &gt; 0 </span><span class="cov0" title="0">{
+                app.Use(timeout.NewWithContext(func(c *fiber.Ctx) error </span><span class="cov0" title="0">{
+                        return c.Next()
+                }</span>, time.Duration(serverConfig.TimeoutSeconds)*time.Second))
+        }
+
+        <span class="cov0" title="0">app.Hooks().OnListen(func(listenData fiber.ListenData) error </span><span class="cov0" title="0">{
+                log.Printf("server starting on :%s", listenData.Port)
+                return nil
+        }</span>)
+
+        <span class="cov0" title="0">app.Get("/docs", func(c *fiber.Ctx) error </span><span class="cov0" title="0">{
+                c.Set("Content-Type", "text/html; charset=utf-8")
+                return c.SendString(scalarHTML)
+        }</span>)
+
+        <span class="cov0" title="0">return &amp;Server{
+                App:    app,
+                Api:    api,
+                Config: &amp;serverConfig,
+        }</span>
+}
+
+func (s *Server) Start() error <span class="cov0" title="0">{
+        return s.App.Listen(":" + s.Config.Port)
+}</span>
+
+func appLoggerMiddleware() fiber.Handler <span class="cov0" title="0">{
+        return func(c *fiber.Ctx) error </span><span class="cov0" title="0">{
+                err := c.Next()
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Printf("request error: %s %s: %v", c.Method(), c.Path(), err)
+                }</span>
+                <span class="cov0" title="0">return err</span>
+        }
+}
+
+func openTelemetryMiddleware() fiber.Handler <span class="cov0" title="0">{
+        tracer := otel.Tracer("sun-stockanalysis-api")
+        return func(c *fiber.Ctx) error </span><span class="cov0" title="0">{
+                ctx, span := tracer.Start(c.UserContext(), fmt.Sprintf("%s %s", c.Method(), c.Path()))
+                defer span.End()
+                c.SetUserContext(ctx)
+                return c.Next()
+        }</span>
+}
+
+const scalarHTML = `&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8" /&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0" /&gt;
+    &lt;title&gt;API Docs&lt;/title&gt;
+    &lt;link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" /&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id="swagger-ui"&gt;&lt;/div&gt;
+    &lt;script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"&gt;&lt;/script&gt;
+    &lt;script&gt;
+      window.onload = function () {
+        window.ui = SwaggerUIBundle({
+          url: "/openapi.json",
+          dom_id: "#swagger-ui",
+        });
+      };
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+`
+
+// const scalarHTML = `&lt;!doctype html&gt;
+// &lt;html&gt;
+//   &lt;head&gt;
+//     &lt;title&gt;Scalar API Reference&lt;/title&gt;
+//     &lt;meta charset="utf-8" /&gt;
+//     &lt;meta
+//       name="viewport"
+//       content="width=device-width, initial-scale=1" /&gt;
+//   &lt;/head&gt;
+
+//   &lt;body&gt;
+//     &lt;div id="app"&gt;&lt;/div&gt;
+
+//     &lt;!-- Load the Script --&gt;
+//     &lt;script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"&gt;&lt;/script&gt;
+
+//     &lt;!-- Initialize the Scalar API Reference --&gt;
+//     &lt;script&gt;
+//       Scalar.createApiReference('#app', {
+//         // The URL of the OpenAPI/Swagger document
+//         url: '/openapi.json',
+//       })
+//     &lt;/script&gt;
+//   &lt;/body&gt;
+// &lt;/html&gt;        `
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

@@ -1,0 +1,18 @@
+packages:
+  ./internal/repository:
+    config:
+      all: true
+      recursive: true
+      filename: "{{ lower .InterfaceName }}_mock.go"
+      outpkg: "{{ .PackageName }}_mock"
+      dir: '{{ replace .InterfaceDir "internal" "internal/mocks" 1 }}'
+      with-expecter: true
+
+  ./internal/domains:
+    config:
+      all: true
+      recursive: true
+      filename: "{{ lower .InterfaceName }}_mock.go"
+      outpkg: "{{ .PackageName }}_mock"
+      dir: '{{ replace .InterfaceDir "internal" "internal/mocks" 1 }}'
+      with-expecter: true

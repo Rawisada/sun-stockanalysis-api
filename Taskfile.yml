@@ -1,0 +1,32 @@
+version: "3"
+
+tasks:
+  dev:
+    desc: Run API locally
+    deps:
+      - tidy
+      - test
+    cmds:
+      - go run .cmd/api
+  
+  mock:
+    desc: Generate mocks with mockery
+    cmds:
+      - rm -rf ./internal/mocks/*
+      - mockery
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./... -coverprofile=coverage.out
+      - go tool cover -html=coverage.out -o coverage.html
+  
+  coverage:
+    desc: Generate HTML coverage report
+    cmds:
+      - go test ./... -coverprofile=coverage.out
+      - go tool cover -html=coverage.out -o coverage.html
+
+  tidy:
+    desc: Go mod tidy
+    cmds:
+      - go mod tidy
