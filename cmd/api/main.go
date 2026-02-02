@@ -21,13 +21,20 @@ func main() {
 	db := database.NewPostgresDatabase(cfg.Database).ConnectionGetting()
 
 	// (optional) migrate
-	if err := db.AutoMigrate(&models.Stock{}, &models.User{}, &models.RefreshTokens{}); err != nil {
+	if err := db.AutoMigrate(
+		&models.Stock{},
+		&models.User{},
+		&models.RefreshTokens{},
+		&models.MasterAssetType{},
+		&models.MasterExchange{},
+		&models.MasterSector{},
+	); err != nil {
 		log.Fatalf("migrate error: %v", err)
 	}
 
 	// DI wiring
 	stockRepo := repository.NewStockRepository(db)
-	stockService := stock.NewStockService(stockRepo)
+	stockService := stock.NewStockService(stockRepo, nil, cfg.Finnhub.Token)
 	stockController := controllers.NewStockController(stockService)
 	healthRepo := repository.NewHealthRepository(db)
 	userRepo := repository.NewUserRepository(db)

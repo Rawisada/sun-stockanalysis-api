@@ -71,7 +71,7 @@
 				
 				<option value="file7">sun-stockanalysis-api/internal/controllers/health_controller.go (0.0%)</option>
 				
-				<option value="file8">sun-stockanalysis-api/internal/controllers/stock_controller.go (84.6%)</option>
+				<option value="file8">sun-stockanalysis-api/internal/controllers/stock_controller.go (100.0%)</option>
 				
 				<option value="file9">sun-stockanalysis-api/internal/database/health.go (0.0%)</option>
 				
@@ -79,7 +79,7 @@
 				
 				<option value="file11">sun-stockanalysis-api/internal/domains/auth/service.go (74.4%)</option>
 				
-				<option value="file12">sun-stockanalysis-api/internal/domains/stock/service.go (100.0%)</option>
+				<option value="file12">sun-stockanalysis-api/internal/domains/stock/service.go (66.7%)</option>
 				
 				<option value="file13">sun-stockanalysis-api/internal/handler/auth_middleware.go (0.0%)</option>
 				
@@ -87,25 +87,29 @@
 				
 				<option value="file15">sun-stockanalysis-api/internal/mocks/domains/auth/authservice_mock.go (0.0%)</option>
 				
-				<option value="file16">sun-stockanalysis-api/internal/mocks/domains/stock/stockservice_mock.go (0.0%)</option>
+				<option value="file16">sun-stockanalysis-api/internal/mocks/domains/stock/httpclient_mock.go (0.0%)</option>
 				
-				<option value="file17">sun-stockanalysis-api/internal/mocks/repository/healthrepository_mock.go (0.0%)</option>
+				<option value="file17">sun-stockanalysis-api/internal/mocks/domains/stock/stockservice_mock.go (0.0%)</option>
 				
-				<option value="file18">sun-stockanalysis-api/internal/mocks/repository/refreshtokenrepository_mock.go (0.0%)</option>
+				<option value="file18">sun-stockanalysis-api/internal/mocks/repository/healthrepository_mock.go (0.0%)</option>
 				
-				<option value="file19">sun-stockanalysis-api/internal/mocks/repository/stockrepository_mock.go (0.0%)</option>
+				<option value="file19">sun-stockanalysis-api/internal/mocks/repository/refreshtokenrepository_mock.go (0.0%)</option>
 				
-				<option value="file20">sun-stockanalysis-api/internal/mocks/repository/userrepository_mock.go (0.0%)</option>
+				<option value="file20">sun-stockanalysis-api/internal/mocks/repository/stockrepository_mock.go (0.0%)</option>
 				
-				<option value="file21">sun-stockanalysis-api/internal/repository/health.go (0.0%)</option>
+				<option value="file21">sun-stockanalysis-api/internal/mocks/repository/userrepository_mock.go (0.0%)</option>
 				
-				<option value="file22">sun-stockanalysis-api/internal/repository/refresh_token.go (0.0%)</option>
+				<option value="file22">sun-stockanalysis-api/internal/models/master.go (0.0%)</option>
 				
-				<option value="file23">sun-stockanalysis-api/internal/repository/stock.go (0.0%)</option>
+				<option value="file23">sun-stockanalysis-api/internal/repository/health.go (0.0%)</option>
 				
-				<option value="file24">sun-stockanalysis-api/internal/repository/user.go (0.0%)</option>
+				<option value="file24">sun-stockanalysis-api/internal/repository/refresh_token.go (0.0%)</option>
 				
-				<option value="file25">sun-stockanalysis-api/internal/server/server.go (0.0%)</option>
+				<option value="file25">sun-stockanalysis-api/internal/repository/stock.go (0.0%)</option>
+				
+				<option value="file26">sun-stockanalysis-api/internal/repository/user.go (0.0%)</option>
+				
+				<option value="file27">sun-stockanalysis-api/internal/server/server.go (0.0%)</option>
 				
 				</select>
 			</div>
@@ -142,13 +146,20 @@ func main() <span class="cov0" title="0">{
         db := database.NewPostgresDatabase(cfg.Database).ConnectionGetting()
 
         // (optional) migrate
-        if err := db.AutoMigrate(&amp;models.Stock{}, &amp;models.User{}, &amp;models.RefreshTokens{}); err != nil </span><span class="cov0" title="0">{
+        if err := db.AutoMigrate(
+                &amp;models.Stock{},
+                &amp;models.User{},
+                &amp;models.RefreshTokens{},
+                &amp;models.MasterAssetType{},
+                &amp;models.MasterExchange{},
+                &amp;models.MasterSector{},
+        ); err != nil </span><span class="cov0" title="0">{
                 log.Fatalf("migrate error: %v", err)
         }</span>
 
         // DI wiring
         <span class="cov0" title="0">stockRepo := repository.NewStockRepository(db)
-        stockService := stock.NewStockService(stockRepo)
+        stockService := stock.NewStockService(stockRepo, nil, cfg.Finnhub.Token)
         stockController := controllers.NewStockController(stockService)
         healthRepo := repository.NewHealthRepository(db)
         userRepo := repository.NewUserRepository(db)
@@ -435,6 +446,7 @@ type (
                 // OAuth2           *OAuth2           `mapstructure:"oauth2" validate:"required"`
                 State           *State           `mapstructure:"state" validate:"required"`
                 Database         *Database         `mapstructure:"database" validate:"required"`
+                Finnhub                *Finnhub        `mapstructure:"finnhub" validate:"required"`
         }
 
         Server struct {
@@ -476,6 +488,10 @@ type (
                 SSLmode                   string                 `mapstructure:"sslmode" validate:"required"`
                 Schema                   string                 `mapstructure:"schema" validate:"required"`
         }
+
+        Finnhub struct {
+                Token string `mapstructure:"token" validate:"required"`
+        }
 )
 
 var (
@@ -509,7 +525,8 @@ func ConfigGetting() *Config <span class="cov0" title="0">{
         })
 
         <span class="cov0" title="0">return  configInstance</span>
-}</pre>
+}
+</pre>
 		
 		<pre class="file" id="file5" style="display: none">package controllers
 
@@ -782,22 +799,6 @@ func (c *StockController) CreateStock(ctx context.Context, input *stock.CreateSt
 func validateCreateStockInput(input *stock.CreateStockInput) error <span class="cov8" title="1">{
         if input.Body.Symbol == "" </span><span class="cov8" title="1">{
                 return common.NewBadRequest("symbol required")
-        }</span>
-
-        <span class="cov8" title="1">if  input.Body.Name == "" </span><span class="cov0" title="0">{
-                return common.NewBadRequest("name required")
-        }</span>
-
-        <span class="cov8" title="1">if input.Body.Exchange == "" </span><span class="cov0" title="0">{
-                return common.NewBadRequest("exchange required")
-        }</span>
-
-        <span class="cov8" title="1">if input.Body.AssetType == "" </span><span class="cov0" title="0">{
-                return common.NewBadRequest("assetType required")
-        }</span>
-
-        <span class="cov8" title="1">if input.Body.Currency == "" </span><span class="cov0" title="0">{
-                return common.NewBadRequest("currency required")
         }</span>
 
         <span class="cov8" title="1">return nil</span>
@@ -1105,6 +1106,13 @@ func newRefreshToken() (string, string, time.Time, error) <span class="cov8" tit
 		<pre class="file" id="file12" style="display: none">package stock
 
 import (
+        "encoding/json"
+        "fmt"
+        "io"
+        "net/http"
+        "strings"
+        "time"
+
         "github.com/google/uuid"
 
         "sun-stockanalysis-api/internal/models"
@@ -1116,28 +1124,149 @@ type StockService interface {
         CreateStock(input CreateStockInput) error
 }
 
-type StockServiceImpl struct {
-        repo repository.StockRepository
+type HTTPClient interface {
+        Do(req *http.Request) (*http.Response, error)
 }
 
-func NewStockService(repo repository.StockRepository) StockService <span class="cov8" title="1">{
-        return &amp;StockServiceImpl{repo: repo}
-}</span>
+type StockServiceImpl struct {
+        repo         repository.StockRepository
+        httpClient   HTTPClient
+        finnhubToken string
+}
+
+func NewStockService(repo repository.StockRepository, httpClient HTTPClient, finnhubToken string) StockService <span class="cov8" title="1">{
+        if httpClient == nil </span><span class="cov0" title="0">{
+                httpClient = &amp;http.Client{Timeout: 10 * time.Second}
+        }</span>
+        <span class="cov8" title="1">return &amp;StockServiceImpl{
+                repo:         repo,
+                httpClient:   httpClient,
+                finnhubToken: finnhubToken,
+        }</span>
+}
 
 func (s *StockServiceImpl) GetStock(id uuid.UUID) (*models.Stock, error) <span class="cov8" title="1">{
         return s.repo.FindByID(id)
 }</span>
 
 func (s *StockServiceImpl) CreateStock(input CreateStockInput) error <span class="cov8" title="1">{
-        return s.repo.Create(&amp;models.Stock{
-                Symbol:    input.Body.Symbol,
-                Name:      input.Body.Name,
-                Sector:    input.Body.Sector,
-                Exchange:  input.Body.Exchange,
-                AssetType: input.Body.AssetType,
-                Currency:  input.Body.Currency,
-        })
-}</span>
+        profile, err := s.fetchProfile(input.Body.Symbol)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">assetType, err := s.fetchAssetType(input.Body.Symbol)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">if profile.Exchange != "" </span><span class="cov8" title="1">{
+                if err := s.repo.EnsureMasterExchange(profile.Exchange); err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+        <span class="cov8" title="1">if profile.FinnhubIndustry != "" </span><span class="cov8" title="1">{
+                if err := s.repo.EnsureMasterSector(profile.FinnhubIndustry); err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+        <span class="cov8" title="1">if assetType != "" </span><span class="cov8" title="1">{
+                if err := s.repo.EnsureMasterAssetType(assetType); err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+
+        <span class="cov8" title="1">symbol := profile.Symbol
+        if symbol == "" </span><span class="cov0" title="0">{
+                symbol = input.Body.Symbol
+        }</span>
+
+        <span class="cov8" title="1">return s.repo.Create(&amp;models.Stock{
+                Symbol:    symbol,
+                Name:      profile.Name,
+                Sector:    profile.FinnhubIndustry,
+                Exchange:  profile.Exchange,
+                AssetType: assetType,
+                Currency:  profile.Currency,
+        })</span>
+}
+
+type finnhubProfileResponse struct {
+        Exchange        string `json:"exchange"`
+        FinnhubIndustry string `json:"finnhubIndustry"`
+        Currency        string `json:"currency"`
+        Name            string `json:"name"`
+        Symbol          string `json:"symbol"`
+}
+
+type finnhubSearchResponse struct {
+        Count  int `json:"count"`
+        Result []struct {
+                Symbol string `json:"symbol"`
+                Type   string `json:"type"`
+        } `json:"result"`
+}
+
+func (s *StockServiceImpl) fetchProfile(symbol string) (*finnhubProfileResponse, error) <span class="cov8" title="1">{
+        url := fmt.Sprintf("https://finnhub.io/api/v1/stock/profile2?symbol=%s", symbol)
+        req, err := http.NewRequest(http.MethodGet, url, nil)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">req.Header.Set("X-Finnhub-Token", s.finnhubToken)
+
+        resp, err := s.httpClient.Do(req)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer resp.Body.Close()
+
+        if resp.StatusCode &lt; 200 || resp.StatusCode &gt;= 300 </span><span class="cov0" title="0">{
+                body, _ := io.ReadAll(resp.Body)
+                return nil, fmt.Errorf("finnhub profile request failed: %s", strings.TrimSpace(string(body)))
+        }</span>
+
+        <span class="cov8" title="1">var result finnhubProfileResponse
+        if err := json.NewDecoder(resp.Body).Decode(&amp;result); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return &amp;result, nil</span>
+}
+
+func (s *StockServiceImpl) fetchAssetType(symbol string) (string, error) <span class="cov8" title="1">{
+        url := fmt.Sprintf("https://finnhub.io/api/v1/search?q=%s&amp;exchange=US", symbol)
+        req, err := http.NewRequest(http.MethodGet, url, nil)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov8" title="1">req.Header.Set("X-Finnhub-Token", s.finnhubToken)
+
+        resp, err := s.httpClient.Do(req)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov8" title="1">defer resp.Body.Close()
+
+        if resp.StatusCode &lt; 200 || resp.StatusCode &gt;= 300 </span><span class="cov0" title="0">{
+                body, _ := io.ReadAll(resp.Body)
+                return "", fmt.Errorf("finnhub search request failed: %s", strings.TrimSpace(string(body)))
+        }</span>
+
+        <span class="cov8" title="1">var result finnhubSearchResponse
+        if err := json.NewDecoder(resp.Body).Decode(&amp;result); err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+
+        <span class="cov8" title="1">for _, item := range result.Result </span><span class="cov8" title="1">{
+                if strings.EqualFold(item.Symbol, symbol) </span><span class="cov8" title="1">{
+                        return item.Type, nil
+                }</span>
+        }
+        <span class="cov0" title="0">if len(result.Result) &gt; 0 </span><span class="cov0" title="0">{
+                return result.Result[0].Type, nil
+        }</span>
+        <span class="cov0" title="0">return "", nil</span>
+}
 </pre>
 		
 		<pre class="file" id="file13" style="display: none">package handler
@@ -1529,6 +1658,102 @@ func NewMockAuthService(t interface {
 package stock_mock
 
 import (
+        http "net/http"
+
+        mock "github.com/stretchr/testify/mock"
+)
+
+// MockHTTPClient is an autogenerated mock type for the HTTPClient type
+type MockHTTPClient struct {
+        mock.Mock
+}
+
+type MockHTTPClient_Expecter struct {
+        mock *mock.Mock
+}
+
+func (_m *MockHTTPClient) EXPECT() *MockHTTPClient_Expecter <span class="cov0" title="0">{
+        return &amp;MockHTTPClient_Expecter{mock: &amp;_m.Mock}
+}</span>
+
+// Do provides a mock function with given fields: req
+func (_m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) <span class="cov0" title="0">{
+        ret := _m.Called(req)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Do")</span>
+        }
+
+        <span class="cov0" title="0">var r0 *http.Response
+        var r1 error
+        if rf, ok := ret.Get(0).(func(*http.Request) (*http.Response, error)); ok </span><span class="cov0" title="0">{
+                return rf(req)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(*http.Request) *http.Response); ok </span><span class="cov0" title="0">{
+                r0 = rf(req)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).(*http.Response)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(*http.Request) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(req)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockHTTPClient_Do_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Do'
+type MockHTTPClient_Do_Call struct {
+        *mock.Call
+}
+
+// Do is a helper method to define mock.On call
+//   - req *http.Request
+func (_e *MockHTTPClient_Expecter) Do(req interface{}) *MockHTTPClient_Do_Call <span class="cov0" title="0">{
+        return &amp;MockHTTPClient_Do_Call{Call: _e.mock.On("Do", req)}
+}</span>
+
+func (_c *MockHTTPClient_Do_Call) Run(run func(req *http.Request)) *MockHTTPClient_Do_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(*http.Request))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockHTTPClient_Do_Call) Return(_a0 *http.Response, _a1 error) *MockHTTPClient_Do_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockHTTPClient_Do_Call) RunAndReturn(run func(*http.Request) (*http.Response, error)) *MockHTTPClient_Do_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// NewMockHTTPClient creates a new instance of MockHTTPClient. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockHTTPClient(t interface {
+        mock.TestingT
+        Cleanup(func())
+}) *MockHTTPClient <span class="cov0" title="0">{
+        mock := &amp;MockHTTPClient{}
+        mock.Mock.Test(t)
+
+        t.Cleanup(func() </span><span class="cov0" title="0">{ mock.AssertExpectations(t) }</span>)
+
+        <span class="cov0" title="0">return mock</span>
+}
+</pre>
+		
+		<pre class="file" id="file17" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
+
+package stock_mock
+
+import (
         models "sun-stockanalysis-api/internal/models"
 
         mock "github.com/stretchr/testify/mock"
@@ -1670,7 +1895,7 @@ func NewMockStockService(t interface {
 }
 </pre>
 		
-		<pre class="file" id="file17" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
+		<pre class="file" id="file18" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
 
 package repository_mock
 
@@ -1754,7 +1979,7 @@ func NewMockHealthRepository(t interface {
 }
 </pre>
 		
-		<pre class="file" id="file18" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
+		<pre class="file" id="file19" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
 
 package repository_mock
 
@@ -1943,7 +2168,7 @@ func NewMockRefreshTokenRepository(t interface {
 }
 </pre>
 		
-		<pre class="file" id="file19" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
+		<pre class="file" id="file20" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
 
 package repository_mock
 
@@ -2010,6 +2235,144 @@ func (_c *MockStockRepository_Create_Call) Return(_a0 error) *MockStockRepositor
 }</span>
 
 func (_c *MockStockRepository_Create_Call) RunAndReturn(run func(*models.Stock) error) *MockStockRepository_Create_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// EnsureMasterAssetType provides a mock function with given fields: name
+func (_m *MockStockRepository) EnsureMasterAssetType(name string) error <span class="cov0" title="0">{
+        ret := _m.Called(name)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for EnsureMasterAssetType")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(string) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(name)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockStockRepository_EnsureMasterAssetType_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnsureMasterAssetType'
+type MockStockRepository_EnsureMasterAssetType_Call struct {
+        *mock.Call
+}
+
+// EnsureMasterAssetType is a helper method to define mock.On call
+//   - name string
+func (_e *MockStockRepository_Expecter) EnsureMasterAssetType(name interface{}) *MockStockRepository_EnsureMasterAssetType_Call <span class="cov0" title="0">{
+        return &amp;MockStockRepository_EnsureMasterAssetType_Call{Call: _e.mock.On("EnsureMasterAssetType", name)}
+}</span>
+
+func (_c *MockStockRepository_EnsureMasterAssetType_Call) Run(run func(name string)) *MockStockRepository_EnsureMasterAssetType_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStockRepository_EnsureMasterAssetType_Call) Return(_a0 error) *MockStockRepository_EnsureMasterAssetType_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockStockRepository_EnsureMasterAssetType_Call) RunAndReturn(run func(string) error) *MockStockRepository_EnsureMasterAssetType_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// EnsureMasterExchange provides a mock function with given fields: name
+func (_m *MockStockRepository) EnsureMasterExchange(name string) error <span class="cov0" title="0">{
+        ret := _m.Called(name)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for EnsureMasterExchange")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(string) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(name)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockStockRepository_EnsureMasterExchange_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnsureMasterExchange'
+type MockStockRepository_EnsureMasterExchange_Call struct {
+        *mock.Call
+}
+
+// EnsureMasterExchange is a helper method to define mock.On call
+//   - name string
+func (_e *MockStockRepository_Expecter) EnsureMasterExchange(name interface{}) *MockStockRepository_EnsureMasterExchange_Call <span class="cov0" title="0">{
+        return &amp;MockStockRepository_EnsureMasterExchange_Call{Call: _e.mock.On("EnsureMasterExchange", name)}
+}</span>
+
+func (_c *MockStockRepository_EnsureMasterExchange_Call) Run(run func(name string)) *MockStockRepository_EnsureMasterExchange_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStockRepository_EnsureMasterExchange_Call) Return(_a0 error) *MockStockRepository_EnsureMasterExchange_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockStockRepository_EnsureMasterExchange_Call) RunAndReturn(run func(string) error) *MockStockRepository_EnsureMasterExchange_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// EnsureMasterSector provides a mock function with given fields: name
+func (_m *MockStockRepository) EnsureMasterSector(name string) error <span class="cov0" title="0">{
+        ret := _m.Called(name)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for EnsureMasterSector")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(string) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(name)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockStockRepository_EnsureMasterSector_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnsureMasterSector'
+type MockStockRepository_EnsureMasterSector_Call struct {
+        *mock.Call
+}
+
+// EnsureMasterSector is a helper method to define mock.On call
+//   - name string
+func (_e *MockStockRepository_Expecter) EnsureMasterSector(name interface{}) *MockStockRepository_EnsureMasterSector_Call <span class="cov0" title="0">{
+        return &amp;MockStockRepository_EnsureMasterSector_Call{Call: _e.mock.On("EnsureMasterSector", name)}
+}</span>
+
+func (_c *MockStockRepository_EnsureMasterSector_Call) Run(run func(name string)) *MockStockRepository_EnsureMasterSector_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStockRepository_EnsureMasterSector_Call) Return(_a0 error) *MockStockRepository_EnsureMasterSector_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockStockRepository_EnsureMasterSector_Call) RunAndReturn(run func(string) error) *MockStockRepository_EnsureMasterSector_Call <span class="cov0" title="0">{
         _c.Call.Return(run)
         return _c
 }</span>
@@ -2087,7 +2450,7 @@ func NewMockStockRepository(t interface {
 }
 </pre>
 		
-		<pre class="file" id="file20" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
+		<pre class="file" id="file21" style="display: none">// Code generated by mockery v2.53.5. DO NOT EDIT.
 
 package repository_mock
 
@@ -2394,7 +2757,42 @@ func NewMockUserRepository(t interface {
 }
 </pre>
 		
-		<pre class="file" id="file21" style="display: none">package repository
+		<pre class="file" id="file22" style="display: none">package models
+
+import "github.com/google/uuid"
+
+type MasterAssetType struct {
+        ID       uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+        Name     string    `gorm:"type:varchar(120);not null;unique" json:"name"`
+        IsActive bool      `gorm:"not null;default:true" json:"is_active"`
+}
+
+func (MasterAssetType) TableName() string <span class="cov0" title="0">{
+        return "master_asset_type"
+}</span>
+
+type MasterExchange struct {
+        ID       uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+        Name     string    `gorm:"type:varchar(120);not null;unique" json:"name"`
+        IsActive bool      `gorm:"not null;default:true" json:"is_active"`
+}
+
+func (MasterExchange) TableName() string <span class="cov0" title="0">{
+        return "master_exchange"
+}</span>
+
+type MasterSector struct {
+        ID       uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+        Name     string    `gorm:"type:varchar(120);not null;unique" json:"name"`
+        IsActive bool      `gorm:"not null;default:true" json:"is_active"`
+}
+
+func (MasterSector) TableName() string <span class="cov0" title="0">{
+        return "master_sector"
+}</span>
+</pre>
+		
+		<pre class="file" id="file23" style="display: none">package repository
 
 import (
         "context"
@@ -2423,7 +2821,7 @@ func NewHealthRepository(DB *gorm.DB) HealthRepository <span class="cov0" title=
 }</span>
 </pre>
 		
-		<pre class="file" id="file22" style="display: none">package repository
+		<pre class="file" id="file24" style="display: none">package repository
 
 import (
         "gorm.io/gorm"
@@ -2464,7 +2862,7 @@ func (r *RefreshTokenRepositoryImpl) RevokeByHash(hash string, revokedAt float64
 }</span>
 </pre>
 		
-		<pre class="file" id="file23" style="display: none">package repository
+		<pre class="file" id="file25" style="display: none">package repository
 
 import (
         "github.com/google/uuid"
@@ -2476,6 +2874,9 @@ import (
 type StockRepository interface {
         FindByID(id uuid.UUID) (*models.Stock, error)
         Create(stock *models.Stock) error
+        EnsureMasterAssetType(name string) error
+        EnsureMasterExchange(name string) error
+        EnsureMasterSector(name string) error
 }
 
 type StockRepositoryImpl struct {
@@ -2497,9 +2898,33 @@ func (r *StockRepositoryImpl) FindByID(id uuid.UUID) (*models.Stock, error) <spa
 func (r *StockRepositoryImpl) Create(s *models.Stock) error <span class="cov0" title="0">{
         return r.db.Create(s).Error
 }</span>
+
+func (r *StockRepositoryImpl) EnsureMasterAssetType(name string) error <span class="cov0" title="0">{
+        if name == "" </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+        <span class="cov0" title="0">record := models.MasterAssetType{Name: name, IsActive: true}
+        return r.db.Where("name = ?", name).FirstOrCreate(&amp;record).Error</span>
+}
+
+func (r *StockRepositoryImpl) EnsureMasterExchange(name string) error <span class="cov0" title="0">{
+        if name == "" </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+        <span class="cov0" title="0">record := models.MasterExchange{Name: name, IsActive: true}
+        return r.db.Where("name = ?", name).FirstOrCreate(&amp;record).Error</span>
+}
+
+func (r *StockRepositoryImpl) EnsureMasterSector(name string) error <span class="cov0" title="0">{
+        if name == "" </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+        <span class="cov0" title="0">record := models.MasterSector{Name: name, IsActive: true}
+        return r.db.Where("name = ?", name).FirstOrCreate(&amp;record).Error</span>
+}
 </pre>
 		
-		<pre class="file" id="file24" style="display: none">package repository
+		<pre class="file" id="file26" style="display: none">package repository
 
 import (
         "time"
@@ -2563,7 +2988,7 @@ func (r *UserRepositoryImpl) UpdateLastLogin(id uuid.UUID, when time.Time) error
 }</span>
 </pre>
 		
-		<pre class="file" id="file25" style="display: none">package server
+		<pre class="file" id="file27" style="display: none">package server
 
 import (
         "fmt"

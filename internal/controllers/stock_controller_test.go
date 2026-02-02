@@ -71,10 +71,6 @@ func (s *StockControllerSuite) TestGetStock_Success() {
 func (s *StockControllerSuite) TestCreateStock_ValidationError() {
 	input := &stock.CreateStockInput{}
 	input.Body.Symbol = ""
-	input.Body.Name = "Name"
-	input.Body.Exchange = "NASDAQ"
-	input.Body.AssetType = "Stock"
-	input.Body.Currency = "USD"
 
 	resp, err := s.controller.CreateStock(context.Background(), input)
 
@@ -86,10 +82,6 @@ func (s *StockControllerSuite) TestCreateStock_ValidationError() {
 func (s *StockControllerSuite) TestCreateStock_InternalError() {
 	input := &stock.CreateStockInput{}
 	input.Body.Symbol = "AAPL"
-	input.Body.Name = "Apple Inc."
-	input.Body.Exchange = "NASDAQ"
-	input.Body.AssetType = "Stock"
-	input.Body.Currency = "USD"
 
 	s.stockService.EXPECT().CreateStock(*input).Return(errors.New("db down"))
 
@@ -103,10 +95,6 @@ func (s *StockControllerSuite) TestCreateStock_InternalError() {
 func (s *StockControllerSuite) TestCreateStock_Success() {
 	input := &stock.CreateStockInput{}
 	input.Body.Symbol = "AAPL"
-	input.Body.Name = "Apple Inc."
-	input.Body.Exchange = "NASDAQ"
-	input.Body.AssetType = "Stock"
-	input.Body.Currency = "USD"
 
 	s.stockService.EXPECT().CreateStock(*input).Return(nil)
 

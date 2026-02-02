@@ -69,6 +69,144 @@ func (_c *MockStockRepository_Create_Call) RunAndReturn(run func(*models.Stock) 
 	return _c
 }
 
+// EnsureMasterAssetType provides a mock function with given fields: name
+func (_m *MockStockRepository) EnsureMasterAssetType(name string) error {
+	ret := _m.Called(name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for EnsureMasterAssetType")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(name)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockStockRepository_EnsureMasterAssetType_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnsureMasterAssetType'
+type MockStockRepository_EnsureMasterAssetType_Call struct {
+	*mock.Call
+}
+
+// EnsureMasterAssetType is a helper method to define mock.On call
+//   - name string
+func (_e *MockStockRepository_Expecter) EnsureMasterAssetType(name interface{}) *MockStockRepository_EnsureMasterAssetType_Call {
+	return &MockStockRepository_EnsureMasterAssetType_Call{Call: _e.mock.On("EnsureMasterAssetType", name)}
+}
+
+func (_c *MockStockRepository_EnsureMasterAssetType_Call) Run(run func(name string)) *MockStockRepository_EnsureMasterAssetType_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string))
+	})
+	return _c
+}
+
+func (_c *MockStockRepository_EnsureMasterAssetType_Call) Return(_a0 error) *MockStockRepository_EnsureMasterAssetType_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockStockRepository_EnsureMasterAssetType_Call) RunAndReturn(run func(string) error) *MockStockRepository_EnsureMasterAssetType_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// EnsureMasterExchange provides a mock function with given fields: name
+func (_m *MockStockRepository) EnsureMasterExchange(name string) error {
+	ret := _m.Called(name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for EnsureMasterExchange")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(name)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockStockRepository_EnsureMasterExchange_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnsureMasterExchange'
+type MockStockRepository_EnsureMasterExchange_Call struct {
+	*mock.Call
+}
+
+// EnsureMasterExchange is a helper method to define mock.On call
+//   - name string
+func (_e *MockStockRepository_Expecter) EnsureMasterExchange(name interface{}) *MockStockRepository_EnsureMasterExchange_Call {
+	return &MockStockRepository_EnsureMasterExchange_Call{Call: _e.mock.On("EnsureMasterExchange", name)}
+}
+
+func (_c *MockStockRepository_EnsureMasterExchange_Call) Run(run func(name string)) *MockStockRepository_EnsureMasterExchange_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string))
+	})
+	return _c
+}
+
+func (_c *MockStockRepository_EnsureMasterExchange_Call) Return(_a0 error) *MockStockRepository_EnsureMasterExchange_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockStockRepository_EnsureMasterExchange_Call) RunAndReturn(run func(string) error) *MockStockRepository_EnsureMasterExchange_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// EnsureMasterSector provides a mock function with given fields: name
+func (_m *MockStockRepository) EnsureMasterSector(name string) error {
+	ret := _m.Called(name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for EnsureMasterSector")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(name)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockStockRepository_EnsureMasterSector_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnsureMasterSector'
+type MockStockRepository_EnsureMasterSector_Call struct {
+	*mock.Call
+}
+
+// EnsureMasterSector is a helper method to define mock.On call
+//   - name string
+func (_e *MockStockRepository_Expecter) EnsureMasterSector(name interface{}) *MockStockRepository_EnsureMasterSector_Call {
+	return &MockStockRepository_EnsureMasterSector_Call{Call: _e.mock.On("EnsureMasterSector", name)}
+}
+
+func (_c *MockStockRepository_EnsureMasterSector_Call) Run(run func(name string)) *MockStockRepository_EnsureMasterSector_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string))
+	})
+	return _c
+}
+
+func (_c *MockStockRepository_EnsureMasterSector_Call) Return(_a0 error) *MockStockRepository_EnsureMasterSector_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockStockRepository_EnsureMasterSector_Call) RunAndReturn(run func(string) error) *MockStockRepository_EnsureMasterSector_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // FindByID provides a mock function with given fields: id
 func (_m *MockStockRepository) FindByID(id uuid.UUID) (*models.Stock, error) {
 	ret := _m.Called(id)

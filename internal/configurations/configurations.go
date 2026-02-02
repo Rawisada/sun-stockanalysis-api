@@ -16,6 +16,7 @@ type (
 		// OAuth2   	*OAuth2   	`mapstructure:"oauth2" validate:"required"`
 		State   	*State   	`mapstructure:"state" validate:"required"`
 		Database 	*Database 	`mapstructure:"database" validate:"required"`
+		Finnhub		*Finnhub	`mapstructure:"finnhub" validate:"required"`
 	}
 
 	Server struct {
@@ -56,6 +57,10 @@ type (
 		DBname   		string 		`mapstructure:"dbname" validate:"required"`
 		SSLmode   		string 		`mapstructure:"sslmode" validate:"required"`
 		Schema   		string 		`mapstructure:"schema" validate:"required"`
+	}
+
+	Finnhub struct {
+		Token string `mapstructure:"token" validate:"required"`
 	}
 )
 

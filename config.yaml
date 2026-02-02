@@ -32,3 +32,6 @@ database:
   dbname: postgres
   sslmode: disable
   schema: stock
+
+finnhub:
+  token: "d2unplpr01qq994ghcd0d2unplpr01qq994ghcdg"

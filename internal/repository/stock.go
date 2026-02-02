@@ -10,6 +10,9 @@ import (
 type StockRepository interface {
 	FindByID(id uuid.UUID) (*models.Stock, error)
 	Create(stock *models.Stock) error
+	EnsureMasterAssetType(name string) error
+	EnsureMasterExchange(name string) error
+	EnsureMasterSector(name string) error
 }
 
 type StockRepositoryImpl struct {
@@ -30,4 +33,28 @@ func (r *StockRepositoryImpl) FindByID(id uuid.UUID) (*models.Stock, error) {
 
 func (r *StockRepositoryImpl) Create(s *models.Stock) error {
 	return r.db.Create(s).Error
+}
+
+func (r *StockRepositoryImpl) EnsureMasterAssetType(name string) error {
+	if name == "" {
+		return nil
+	}
+	record := models.MasterAssetType{Name: name, IsActive: true}
+	return r.db.Where("name = ?", name).FirstOrCreate(&record).Error
+}
+
+func (r *StockRepositoryImpl) EnsureMasterExchange(name string) error {
+	if name == "" {
+		return nil
+	}
+	record := models.MasterExchange{Name: name, IsActive: true}
+	return r.db.Where("name = ?", name).FirstOrCreate(&record).Error
+}
+
+func (r *StockRepositoryImpl) EnsureMasterSector(name string) error {
+	if name == "" {
+		return nil
+	}
+	record := models.MasterSector{Name: name, IsActive: true}
+	return r.db.Where("name = ?", name).FirstOrCreate(&record).Error
 }

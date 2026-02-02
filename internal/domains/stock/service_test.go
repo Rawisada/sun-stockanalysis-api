@@ -1,7 +1,11 @@
 package stock
 
 import (
+	"bytes"
 	"errors"
+	"io"
+	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -14,13 +18,15 @@ import (
 
 type StockServiceSuite struct {
 	suite.Suite
-	repo    *repositorymock.MockStockRepository
-	service StockService
+	repo       *repositorymock.MockStockRepository
+	service    StockService
+	httpClient *mockHTTPClient
 }
 
 func (s *StockServiceSuite) SetupTest() {
 	s.repo = repositorymock.NewMockStockRepository(s.T())
-	s.service = NewStockService(s.repo)
+	s.httpClient = &mockHTTPClient{}
+	s.service = NewStockService(s.repo, s.httpClient, "token")
 }
 
 func (s *StockServiceSuite) TestGetStock_ReturnsStock() {
@@ -54,20 +60,30 @@ func (s *StockServiceSuite) TestGetStock_ReturnsError() {
 func (s *StockServiceSuite) TestCreateStock_Persists() {
 	input := CreateStockInput{}
 	input.Body.Symbol = "TSLA"
-	input.Body.Name = "Tesla, Inc."
-	input.Body.Sector = "Automotive"
-	input.Body.Exchange = "NASDAQ"
-	input.Body.AssetType = "Stock"
-	input.Body.Currency = "USD"
+
+	s.httpClient.do = func(req *http.Request) (*http.Response, error) {
+		s.Equal("token", req.Header.Get("X-Finnhub-Token"))
+		if strings.Contains(req.URL.Path, "/stock/profile2") {
+			return newHTTPResponse(http.StatusOK, `{"exchange":"NASDAQ","finnhubIndustry":"Automotive","currency":"USD","name":"Tesla, Inc.","symbol":"TSLA"}`), nil
+		}
+		if strings.Contains(req.URL.Path, "/search") {
+			return newHTTPResponse(http.StatusOK, `{"count":1,"result":[{"symbol":"TSLA","type":"Stock"}]}`), nil
+		}
+		return newHTTPResponse(http.StatusNotFound, `{}`), nil
+	}
+
+	s.repo.EXPECT().EnsureMasterExchange("NASDAQ").Return(nil)
+	s.repo.EXPECT().EnsureMasterSector("Automotive").Return(nil)
+	s.repo.EXPECT().EnsureMasterAssetType("Stock").Return(nil)
 
 	s.repo.EXPECT().Create(mock.MatchedBy(func(stock *models.Stock) bool {
 		s.NotNil(stock)
-		return stock.Symbol == input.Body.Symbol &&
-			stock.Name == input.Body.Name &&
-			stock.Sector == input.Body.Sector &&
-			stock.Exchange == input.Body.Exchange &&
-			stock.AssetType == input.Body.AssetType &&
-			stock.Currency == input.Body.Currency
+		return stock.Symbol == "TSLA" &&
+			stock.Name == "Tesla, Inc." &&
+			stock.Sector == "Automotive" &&
+			stock.Exchange == "NASDAQ" &&
+			stock.AssetType == "Stock" &&
+			stock.Currency == "USD"
 	})).Return(nil)
 
 	err := s.service.CreateStock(input)
@@ -78,14 +94,22 @@ func (s *StockServiceSuite) TestCreateStock_Persists() {
 func (s *StockServiceSuite) TestCreateStock_ReturnsError() {
 	input := CreateStockInput{}
 	input.Body.Symbol = "NVDA"
-	input.Body.Name = "NVIDIA Corporation"
-	input.Body.Sector = "Technology"
-	input.Body.Exchange = "NASDAQ"
-	input.Body.AssetType = "Stock"
-	input.Body.Currency = "USD"
+
+	s.httpClient.do = func(req *http.Request) (*http.Response, error) {
+		if strings.Contains(req.URL.Path, "/stock/profile2") {
+			return newHTTPResponse(http.StatusOK, `{"exchange":"NASDAQ","finnhubIndustry":"Technology","currency":"USD","name":"NVIDIA Corporation","symbol":"NVDA"}`), nil
+		}
+		if strings.Contains(req.URL.Path, "/search") {
+			return newHTTPResponse(http.StatusOK, `{"count":1,"result":[{"symbol":"NVDA","type":"Stock"}]}`), nil
+		}
+		return newHTTPResponse(http.StatusNotFound, `{}`), nil
+	}
 
 	wantErr := errors.New("create failed")
 
+	s.repo.EXPECT().EnsureMasterExchange("NASDAQ").Return(nil)
+	s.repo.EXPECT().EnsureMasterSector("Technology").Return(nil)
+	s.repo.EXPECT().EnsureMasterAssetType("Stock").Return(nil)
 	s.repo.EXPECT().Create(mock.Anything).Return(wantErr)
 
 	err := s.service.CreateStock(input)
@@ -95,4 +119,19 @@ func (s *StockServiceSuite) TestCreateStock_ReturnsError() {
 
 func TestStockServiceSuite(t *testing.T) {
 	suite.Run(t, new(StockServiceSuite))
+}
+
+type mockHTTPClient struct {
+	do func(req *http.Request) (*http.Response, error)
+}
+
+func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	return m.do(req)
+}
+
+func newHTTPResponse(status int, body string) *http.Response {
+	return &http.Response{
+		StatusCode: status,
+		Body:       io.NopCloser(bytes.NewBufferString(body)),
+	}
 }

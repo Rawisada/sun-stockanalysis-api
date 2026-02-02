@@ -72,21 +72,5 @@ func validateCreateStockInput(input *stock.CreateStockInput) error {
 		return common.NewBadRequest("symbol required")
 	}
 
-	if  input.Body.Name == "" {
-		return common.NewBadRequest("name required")
-	}
-
-	if input.Body.Exchange == "" {
-		return common.NewBadRequest("exchange required")
-	}
-
-	if input.Body.AssetType == "" {
-		return common.NewBadRequest("assetType required")
-	}
-
-	if input.Body.Currency == "" {
-		return common.NewBadRequest("currency required")
-	}
-
 	return nil
 }
