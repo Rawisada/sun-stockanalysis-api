@@ -88,9 +88,5 @@ func validateCreateStockInput(input *stock.CreateStockInput) error {
 		return common.NewBadRequest("currency required")
 	}
 
-	if input.Body.Price < 0 {
-		return common.NewBadRequest("price must be non-negative")
-	}
-
 	return nil
 }

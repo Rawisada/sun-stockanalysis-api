@@ -71,7 +71,7 @@
 				
 				<option value="file7">sun-stockanalysis-api/internal/controllers/health_controller.go (0.0%)</option>
 				
-				<option value="file8">sun-stockanalysis-api/internal/controllers/stock_controller.go (82.1%)</option>
+				<option value="file8">sun-stockanalysis-api/internal/controllers/stock_controller.go (84.6%)</option>
 				
 				<option value="file9">sun-stockanalysis-api/internal/database/health.go (0.0%)</option>
 				
@@ -800,10 +800,6 @@ func validateCreateStockInput(input *stock.CreateStockInput) error <span class="
                 return common.NewBadRequest("currency required")
         }</span>
 
-        <span class="cov8" title="1">if input.Body.Price &lt; 0 </span><span class="cov0" title="0">{
-                return common.NewBadRequest("price must be non-negative")
-        }</span>
-
         <span class="cov8" title="1">return nil</span>
 }
 </pre>
@@ -1137,7 +1133,6 @@ func (s *StockServiceImpl) CreateStock(input CreateStockInput) error <span class
                 Symbol:    input.Body.Symbol,
                 Name:      input.Body.Name,
                 Sector:    input.Body.Sector,
-                Price:     input.Body.Price,
                 Exchange:  input.Body.Exchange,
                 AssetType: input.Body.AssetType,
                 Currency:  input.Body.Currency,
@@ -2533,7 +2528,7 @@ func NewUserRepository(db *gorm.DB) UserRepository <span class="cov0" title="0">
 
 func (r *UserRepositoryImpl) FindByEmail(email string) (*models.User, error) <span class="cov0" title="0">{
         var u models.User
-        if err := r.db.First(&amp;u, "email = ? AND is_archive = false", email).Error; err != nil </span><span class="cov0" title="0">{
+        if err := r.db.First(&amp;u, "email = ? AND is_archive = true", email).Error; err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
         <span class="cov0" title="0">return &amp;u, nil</span>
@@ -2541,7 +2536,7 @@ func (r *UserRepositoryImpl) FindByEmail(email string) (*models.User, error) <sp
 
 func (r *UserRepositoryImpl) FindByID(id uuid.UUID) (*models.User, error) <span class="cov0" title="0">{
         var u models.User
-        if err := r.db.First(&amp;u, "id = ? AND is_archive = false", id).Error; err != nil </span><span class="cov0" title="0">{
+        if err := r.db.First(&amp;u, "id = ? AND is_archive = true", id).Error; err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
         <span class="cov0" title="0">return &amp;u, nil</span>
@@ -2550,7 +2545,7 @@ func (r *UserRepositoryImpl) FindByID(id uuid.UUID) (*models.User, error) <span 
 func (r *UserRepositoryImpl) ExistsByEmail(email string) (bool, error) <span class="cov0" title="0">{
         var count int64
         if err := r.db.Model(&amp;models.User{}).
-                Where("email = ? AND is_archive = false", email).
+                Where("email = ? AND is_archive = true", email).
                 Count(&amp;count).Error; err != nil </span><span class="cov0" title="0">{
                 return false, err
         }</span>

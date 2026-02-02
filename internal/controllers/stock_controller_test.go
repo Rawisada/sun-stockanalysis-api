@@ -75,7 +75,6 @@ func (s *StockControllerSuite) TestCreateStock_ValidationError() {
 	input.Body.Exchange = "NASDAQ"
 	input.Body.AssetType = "Stock"
 	input.Body.Currency = "USD"
-	input.Body.Price = 10
 
 	resp, err := s.controller.CreateStock(context.Background(), input)
 
@@ -91,7 +90,6 @@ func (s *StockControllerSuite) TestCreateStock_InternalError() {
 	input.Body.Exchange = "NASDAQ"
 	input.Body.AssetType = "Stock"
 	input.Body.Currency = "USD"
-	input.Body.Price = 10
 
 	s.stockService.EXPECT().CreateStock(*input).Return(errors.New("db down"))
 
@@ -109,7 +107,6 @@ func (s *StockControllerSuite) TestCreateStock_Success() {
 	input.Body.Exchange = "NASDAQ"
 	input.Body.AssetType = "Stock"
 	input.Body.Currency = "USD"
-	input.Body.Price = 10
 
 	s.stockService.EXPECT().CreateStock(*input).Return(nil)
 

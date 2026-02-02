@@ -7,7 +7,7 @@ tasks:
       - tidy
       - test
     cmds:
-      - go run .cmd/api
+      - go run ./cmd/api
   
   mock:
     desc: Generate mocks with mockery

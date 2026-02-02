@@ -29,7 +29,6 @@ func (s *StockServiceImpl) CreateStock(input CreateStockInput) error {
 		Symbol:    input.Body.Symbol,
 		Name:      input.Body.Name,
 		Sector:    input.Body.Sector,
-		Price:     input.Body.Price,
 		Exchange:  input.Body.Exchange,
 		AssetType: input.Body.AssetType,
 		Currency:  input.Body.Currency,

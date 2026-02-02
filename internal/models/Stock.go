@@ -11,7 +11,6 @@ type Stock struct {
 	Symbol      string    `gorm:"type:varchar(64);" json:"symbol"`
 	Name        string    `gorm:"type:varchar(128);" json:"name"`
 	Sector      string    `gorm:"type:varchar(64);" json:"sector"`
-	Price       float64   `gorm:"not null;" json:"price"`
 	Exchange    string    `gorm:"type:varchar(64);not null;" json:"exchange"`
 	AssetType   string    `gorm:"type:varchar(64);not null;" json:"asset_type"`
 	Currency    string    `gorm:"type:varchar(10);not null;" json:"currency"`

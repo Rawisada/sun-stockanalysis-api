@@ -56,7 +56,6 @@ func (s *StockServiceSuite) TestCreateStock_Persists() {
 	input.Body.Symbol = "TSLA"
 	input.Body.Name = "Tesla, Inc."
 	input.Body.Sector = "Automotive"
-	input.Body.Price = 999.50
 	input.Body.Exchange = "NASDAQ"
 	input.Body.AssetType = "Stock"
 	input.Body.Currency = "USD"
@@ -66,7 +65,6 @@ func (s *StockServiceSuite) TestCreateStock_Persists() {
 		return stock.Symbol == input.Body.Symbol &&
 			stock.Name == input.Body.Name &&
 			stock.Sector == input.Body.Sector &&
-			stock.Price == input.Body.Price &&
 			stock.Exchange == input.Body.Exchange &&
 			stock.AssetType == input.Body.AssetType &&
 			stock.Currency == input.Body.Currency
@@ -82,7 +80,6 @@ func (s *StockServiceSuite) TestCreateStock_ReturnsError() {
 	input.Body.Symbol = "NVDA"
 	input.Body.Name = "NVIDIA Corporation"
 	input.Body.Sector = "Technology"
-	input.Body.Price = 450.25
 	input.Body.Exchange = "NASDAQ"
 	input.Body.AssetType = "Stock"
 	input.Body.Currency = "USD"
