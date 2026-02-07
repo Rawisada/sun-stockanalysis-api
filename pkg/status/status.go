@@ -1,4 +1,4 @@
-package controllers
+package status
 
 const (
 	CodeSuccess        = "0"
@@ -16,15 +16,4 @@ const (
 	MsgRequestTimeout = "Request Timeout"
 	MsgSystemError    = "System Error."
 	MsgGeneralError   = "General Error."
-)
-
-type ErrorCode string
-
-const (
-	ErrCodeNotFound       ErrorCode = "NOT_FOUND"
-	ErrCodeBadRequest     ErrorCode = "BAD_REQUEST"
-	ErrCodeUnauthorized   ErrorCode = "UNAUTHORIZED"
-	ErrCodeForbidden      ErrorCode = "FORBIDDEN"
-	ErrCodeConflict       ErrorCode = "CONFLICT"
-	ErrCodeInternalError  ErrorCode = "INTERNAL_ERROR"
 )

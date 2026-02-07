@@ -9,10 +9,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 
-	common "sun-stockanalysis-api/internal/common"
 	"sun-stockanalysis-api/internal/domains/stock"
 	stockmock "sun-stockanalysis-api/internal/mocks/domains/stock"
 	"sun-stockanalysis-api/internal/models"
+	"sun-stockanalysis-api/pkg/apierror"
 )
 
 type StockControllerSuite struct {
@@ -33,7 +33,7 @@ func (s *StockControllerSuite) TestGetStock_InvalidID() {
 
 	s.Nil(resp)
 	s.Error(err)
-	s.Equal(common.ErrCodeBadRequest, err.(*common.APIError).Code)
+	s.Equal(apierror.ErrCodeBadRequest, err.(*apierror.APIError).Code)
 }
 
 func (s *StockControllerSuite) TestGetStock_NotFound() {
@@ -46,7 +46,7 @@ func (s *StockControllerSuite) TestGetStock_NotFound() {
 
 	s.Nil(resp)
 	s.Error(err)
-	s.Equal(common.ErrCodeNotFound, err.(*common.APIError).Code)
+	s.Equal(apierror.ErrCodeNotFound, err.(*apierror.APIError).Code)
 }
 
 func (s *StockControllerSuite) TestGetStock_Success() {
@@ -76,7 +76,7 @@ func (s *StockControllerSuite) TestCreateStock_ValidationError() {
 
 	s.Nil(resp)
 	s.Error(err)
-	s.Equal(common.ErrCodeBadRequest, err.(*common.APIError).Code)
+	s.Equal(apierror.ErrCodeBadRequest, err.(*apierror.APIError).Code)
 }
 
 func (s *StockControllerSuite) TestCreateStock_InternalError() {
@@ -89,7 +89,7 @@ func (s *StockControllerSuite) TestCreateStock_InternalError() {
 
 	s.Nil(resp)
 	s.Error(err)
-	s.Equal(common.ErrCodeInternalError, err.(*common.APIError).Code)
+	s.Equal(apierror.ErrCodeInternalError, err.(*apierror.APIError).Code)
 }
 
 func (s *StockControllerSuite) TestCreateStock_Success() {

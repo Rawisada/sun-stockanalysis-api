@@ -27,7 +27,7 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 
 func (r *UserRepositoryImpl) FindByEmail(email string) (*models.User, error) {
 	var u models.User
-	if err := r.db.First(&u, "email = ? AND is_archive = true", email).Error; err != nil {
+	if err := r.db.First(&u, "email = ? AND is_active = true", email).Error; err != nil {
 		return nil, err
 	}
 	return &u, nil
@@ -35,7 +35,7 @@ func (r *UserRepositoryImpl) FindByEmail(email string) (*models.User, error) {
 
 func (r *UserRepositoryImpl) FindByID(id uuid.UUID) (*models.User, error) {
 	var u models.User
-	if err := r.db.First(&u, "id = ? AND is_archive = true", id).Error; err != nil {
+	if err := r.db.First(&u, "id = ? AND is_active = true", id).Error; err != nil {
 		return nil, err
 	}
 	return &u, nil
@@ -44,7 +44,7 @@ func (r *UserRepositoryImpl) FindByID(id uuid.UUID) (*models.User, error) {
 func (r *UserRepositoryImpl) ExistsByEmail(email string) (bool, error) {
 	var count int64
 	if err := r.db.Model(&models.User{}).
-		Where("email = ? AND is_archive = true", email).
+		Where("email = ? AND is_active = true", email).
 		Count(&count).Error; err != nil {
 		return false, err
 	}

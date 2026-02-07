@@ -1,96 +1,105 @@
 package main
 
 import (
-	"log"
-	"strconv"
+	"context"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"sun-stockanalysis-api/internal/configurations"
 	"sun-stockanalysis-api/internal/controllers"
 	"sun-stockanalysis-api/internal/database"
 	"sun-stockanalysis-api/internal/domains/auth"
+	"sun-stockanalysis-api/internal/domains/company_news"
+	"sun-stockanalysis-api/internal/domains/market_open"
+	"sun-stockanalysis-api/internal/domains/relation_news"
 	"sun-stockanalysis-api/internal/domains/stock"
+	"sun-stockanalysis-api/internal/domains/stock_metric"
+	"sun-stockanalysis-api/internal/domains/stock_quotes"
 	"sun-stockanalysis-api/internal/models"
 	"sun-stockanalysis-api/internal/repository"
 	"sun-stockanalysis-api/internal/server"
+	"sun-stockanalysis-api/pkg/logger"
 )
 
 func main() {
+	if loc, err := time.LoadLocation("Asia/Bangkok"); err == nil {
+		time.Local = loc
+	}
 	cfg := configurations.ConfigGetting()
+	logg := logger.NewLogger(getEnvString("LOG_LEVEL", "info"))
+	defer logg.Sync()
 	// DB
 	db := database.NewPostgresDatabase(cfg.Database).ConnectionGetting()
 
 	// (optional) migrate
 	if err := db.AutoMigrate(
 		&models.Stock{},
+		&models.StockQuote{},
 		&models.User{},
 		&models.RefreshTokens{},
 		&models.MasterAssetType{},
 		&models.MasterExchange{},
 		&models.MasterSector{},
+		&models.MarketOpen{},
+		&models.StockMetric{},
+		&models.RelationNews{},
+		&models.CompanyNews{},
 	); err != nil {
-		log.Fatalf("migrate error: %v", err)
+		logg.Fatalf("migrate error: %v", err)
 	}
 
 	// DI wiring
 	stockRepo := repository.NewStockRepository(db)
 	stockService := stock.NewStockService(stockRepo, nil, cfg.Finnhub.Token)
 	stockController := controllers.NewStockController(stockService)
+	stockQuoteRepo := repository.NewStockQuoteRepository(db)
+	stockQuoteService := stock_quotes.NewStockQuoteService(stockRepo, stockQuoteRepo, nil, cfg.Finnhub.Token)
+	stockMetricRepo := repository.NewStockMetricRepository(db)
+	stockMetricService := stock_metric.NewStockMetricService(stockRepo, stockQuoteRepo, stockMetricRepo)
+	relationNewsRepo := repository.NewRelationNewsRepository(db)
+	relationNewsService := relation_news.NewRelationNewsService(relationNewsRepo)
+	companyNewsRepo := repository.NewCompanyNewsRepository(db)
+	companyNewsService := company_news.NewCompanyNewsService(relationNewsRepo, companyNewsRepo, nil, cfg.Finnhub.Token, logg)
 	healthRepo := repository.NewHealthRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
 	authService := auth.NewAuthService(userRepo, refreshTokenRepo, cfg.State)
 	authController := controllers.NewAuthController(authService)
+	relationNewsController := controllers.NewRelationNewsController(relationNewsService)
+	marketOpenRepo := repository.NewMarketOpenRepository(db)
+	marketOpenService := market_open.NewMarketOpenService(marketOpenRepo, nil, cfg.Finnhub.Token, stockQuoteService, stockMetricService, logg)
+	marketOpenService.Start(context.Background())
+	companyNewsService.Start(context.Background())
 
-	serverConfig := server.ServerConfig{
-		Title:            server.ServerTitle("sun-stockanalysis-api"),
-		Version:          server.ServerVersion("1.0.0"),
-		Port:             toPortString(cfg.Server.Port),
-		MaxPayloadSizeKB: parseBodyLimitKB(cfg.Server.BodyLimit),
-		TimeoutSeconds:   int(cfg.Server.TimeOut.Seconds()),
-		AuthSecret:       cfg.State.Secret,
-		AuthIssuer:       cfg.State.Issuer,
-	}
-
-	healthController := controllers.NewHealthController(healthRepo, string(serverConfig.Version))
-	appControllers := controllers.NewControllers(healthController, stockController, authController)
+	healthController := controllers.NewHealthController(healthRepo, "1.0.0")
+	appControllers := controllers.NewControllers(healthController, stockController, authController, relationNewsController)
 
 	// Fiber server
-	srv := server.NewServer(serverConfig, appControllers)
+	srv := server.NewServer(cfg, appControllers, logg)
 
-	log.Printf("server starting on :%d", cfg.Server.Port)
-	if err := srv.Start(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func parseBodyLimitKB(v string) int {
-	value := strings.TrimSpace(strings.ToUpper(v))
-	if strings.HasSuffix(value, "M") {
-		n := strings.TrimSuffix(value, "M")
-		return atoiOrZero(n) * 1024
-	}
-	if strings.HasSuffix(value, "K") {
-		n := strings.TrimSuffix(value, "K")
-		return atoiOrZero(n)
-	}
-	return atoiOrZero(value) * 1024
-}
-
-func atoiOrZero(v string) int {
-	var n int
-	for _, r := range v {
-		if r < '0' || r > '9' {
-			return 0
+	go func() {
+		logg.Infof("server starting on :%d", cfg.Server.Port)
+		if err := srv.Start(); err != nil {
+			logg.Fatalf("server error: %v", err)
 		}
-		n = n*10 + int(r-'0')
+	}()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-sigChan
+	logg.Infof("shutdown signal received: %v", sig)
+	if err := srv.Stop(); err != nil {
+		logg.Errorf("server shutdown error: %v", err)
 	}
-	return n
+	logg.Info("server stopped gracefully")
 }
 
-func toPortString(port int) string {
-	if port <= 0 {
-		return "8080"
+func getEnvString(key, fallback string) string {
+	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
+		return v
 	}
-	return strconv.Itoa(port)
+	return fallback
 }

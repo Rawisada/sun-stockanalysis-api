@@ -10,6 +10,7 @@ import (
 type StockRepository interface {
 	FindByID(id uuid.UUID) (*models.Stock, error)
 	Create(stock *models.Stock) error
+	ListSymbols() ([]string, error)
 	EnsureMasterAssetType(name string) error
 	EnsureMasterExchange(name string) error
 	EnsureMasterSector(name string) error
@@ -33,6 +34,16 @@ func (r *StockRepositoryImpl) FindByID(id uuid.UUID) (*models.Stock, error) {
 
 func (r *StockRepositoryImpl) Create(s *models.Stock) error {
 	return r.db.Create(s).Error
+}
+
+func (r *StockRepositoryImpl) ListSymbols() ([]string, error) {
+	var symbols []string
+	if err := r.db.Model(&models.Stock{}).
+		Where("is_active = ?", true).
+		Pluck("symbol", &symbols).Error; err != nil {
+		return nil, err
+	}
+	return symbols, nil
 }
 
 func (r *StockRepositoryImpl) EnsureMasterAssetType(name string) error {

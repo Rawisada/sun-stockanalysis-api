@@ -6,9 +6,10 @@ import (
 
 	"github.com/google/uuid"
 
-	common "sun-stockanalysis-api/internal/common"
 	"sun-stockanalysis-api/internal/domains/stock"
 	"sun-stockanalysis-api/internal/models"
+	"sun-stockanalysis-api/pkg/apierror"
+	"sun-stockanalysis-api/pkg/response"
 )
 
 type StockController struct {
@@ -25,7 +26,7 @@ type GetStockInput struct {
 
 type StockResponse struct {
 	Status int `status:"default"`
-	Body   common.DataResponse[*models.Stock]
+	Body   response.ApiResponse[*models.Stock]
 }
 
 func (c *StockController) GetStock(ctx context.Context, input *GetStockInput) (*StockResponse, error) {
@@ -34,23 +35,27 @@ func (c *StockController) GetStock(ctx context.Context, input *GetStockInput) (*
 	id, err := uuid.Parse(input.ID)
 
 	if err != nil {
-		return nil, common.NewBadRequest("invalid stock id")
+		return nil, apierror.NewBadRequest("invalid stock id")
 	}
 
 	s, err := c.stockService.GetStock(id)
 
 	if err != nil {
-		return nil, common.NewNotFound("stock not found")
+		return nil, apierror.NewNotFound("stock not found")
 	}
 
 	return &StockResponse{
 		Status: http.StatusOK,
-		Body:   common.SuccessResponse(s),
+		Body:   response.Success(s),
 	}, nil
 }
 
+type StockCreateResponse struct {
+	Status int `status:"default"`
+	Body   response.ApiResponse[any]
+}
 
-func (c *StockController) CreateStock(ctx context.Context, input *stock.CreateStockInput) (*common.StatusResponse, error) {
+func (c *StockController) CreateStock(ctx context.Context, input *stock.CreateStockInput) (*StockCreateResponse, error) {
 	_ = ctx
 
 	if err := validateCreateStockInput(input); err != nil {
@@ -58,18 +63,18 @@ func (c *StockController) CreateStock(ctx context.Context, input *stock.CreateSt
 	}
 
 	if err := c.stockService.CreateStock(*input); err != nil {
-		return nil, common.NewInternalError(err.Error())
+		return nil, apierror.NewInternalError(err.Error())
 	}
 
-	return &common.StatusResponse{
+	return &StockCreateResponse{
 		Status: http.StatusCreated,
-		Body:   common.SuccessResponse[any]("stock created successfully"),
+		Body:   response.Success[any]("stock created successfully"),
 	}, nil
 }
 
 func validateCreateStockInput(input *stock.CreateStockInput) error {
 	if input.Body.Symbol == "" {
-		return common.NewBadRequest("symbol required")
+		return apierror.NewBadRequest("symbol required")
 	}
 
 	return nil

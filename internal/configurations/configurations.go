@@ -5,26 +5,27 @@ import (
 	"sync"
 	"time"
 
-	"github.com/spf13/viper"
 	"github.com/go-playground/validator/v10"
-	
+	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 )
 
 type (
 	Config struct {
-		Server   	*Server   	`mapstructure:"server" validate:"required"`
+		Server *Server `mapstructure:"server" validate:"required"`
 		// OAuth2   	*OAuth2   	`mapstructure:"oauth2" validate:"required"`
-		State   	*State   	`mapstructure:"state" validate:"required"`
-		Database 	*Database 	`mapstructure:"database" validate:"required"`
-		Finnhub		*Finnhub	`mapstructure:"finnhub" validate:"required"`
+		State    *State    `mapstructure:"state" validate:"required"`
+		Database *Database `mapstructure:"database" validate:"required"`
+		Finnhub  *Finnhub  `mapstructure:"finnhub" validate:"required"`
 	}
 
 	Server struct {
-		Port           	int      		`mapstructure:"port" validate:"required"`
-		AllowedOrigins 	[]string 		`mapstructure:"allowOrigins" validate:"required"`
-		BodyLimit		string			`mapstructure:"bodyLimit" validate:"required"`
-		TimeOut        	time.Duration  	`mapstructure:"timeout" validate:"required"`
-		
+		Host           string        `mapstructure:"host" validate:"required"`
+		Port           int           `mapstructure:"port" validate:"required"`
+		ContextPath    string        `mapstructure:"contextPath" validate:"required"`
+		AllowedOrigins []string      `mapstructure:"allowOrigins" validate:"required"`
+		BodyLimit      string        `mapstructure:"bodyLimit" validate:"required"`
+		TimeOut        time.Duration `mapstructure:"timeout" validate:"required"`
 	}
 
 	// OAuth2 struct {
@@ -43,20 +44,20 @@ type (
 	// 	DeviceAuthUrl  	string 		`mapstructure:"deviceAuthUrl" validate:"required"`
 	// }
 
-	State    struct{
-		Secret     		string 				`mapstructure:"secret" validate:"required"`
-		ExpiredsAt 		time.Duration 		`mapstructure:"expiredsAt" validate:"required"`
-		Issuer  		string 				`mapstructure:"issuer" validate:"required"`
+	State struct {
+		Secret     string        `mapstructure:"secret" validate:"required"`
+		ExpiredsAt time.Duration `mapstructure:"expiredsAt" validate:"required"`
+		Issuer     string        `mapstructure:"issuer" validate:"required"`
 	}
 
 	Database struct {
-		Host     		string 		`mapstructure:"host" validate:"required"`
-		Port     		int    		`mapstructure:"port" validate:"required"`
-		User     		string 		`mapstructure:"user" validate:"required"`
-		Password 		string 		`mapstructure:"password" validate:"required"`
-		DBname   		string 		`mapstructure:"dbname" validate:"required"`
-		SSLmode   		string 		`mapstructure:"sslmode" validate:"required"`
-		Schema   		string 		`mapstructure:"schema" validate:"required"`
+		Host     string `mapstructure:"host" validate:"required"`
+		Port     int    `mapstructure:"port" validate:"required"`
+		User     string `mapstructure:"user" validate:"required"`
+		Password string `mapstructure:"password" validate:"required"`
+		DBname   string `mapstructure:"dbname" validate:"required"`
+		SSLmode  string `mapstructure:"sslmode" validate:"required"`
+		Schema   string `mapstructure:"schema" validate:"required"`
 	}
 
 	Finnhub struct {
@@ -65,21 +66,27 @@ type (
 )
 
 var (
-	once 				sync.Once  //Singleton 
-	configInstance 		*Config
+	once           sync.Once //Singleton
+	configInstance *Config
 )
 
 func ConfigGetting() *Config {
 	once.Do(func() {
-		viper.SetConfigName("config")
-		viper.SetConfigType("yaml")
-		viper.AddConfigPath("./config")
-		viper.AddConfigPath(".")
+		_ = godotenv.Load()
+
 		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		viper.AutomaticEnv()
+		bindEnvKeys()
 
-		if err := viper.ReadInConfig(); err != nil {
-			panic(err)
+		if viper.IsSet("server.allowOrigins") {
+			raw := strings.TrimSpace(viper.GetString("server.allowOrigins"))
+			if raw != "" {
+				parts := strings.Split(raw, ",")
+				for i := range parts {
+					parts[i] = strings.TrimSpace(parts[i])
+				}
+				viper.Set("server.allowOrigins", parts)
+			}
 		}
 
 		var cfg Config
@@ -94,5 +101,31 @@ func ConfigGetting() *Config {
 		configInstance = &cfg
 	})
 
-	return  configInstance
+	return configInstance
+}
+
+func bindEnvKeys() {
+	keys := []string{
+		"server.host",
+		"server.port",
+		"server.contextPath",
+		"server.allowOrigins",
+		"server.bodyLimit",
+		"server.timeout",
+		"state.secret",
+		"state.expiredsAt",
+		"state.issuer",
+		"database.host",
+		"database.port",
+		"database.user",
+		"database.password",
+		"database.dbname",
+		"database.sslmode",
+		"database.schema",
+		"finnhub.token",
+	}
+
+	for _, key := range keys {
+		_ = viper.BindEnv(key)
+	}
 }

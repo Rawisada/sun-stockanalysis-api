@@ -4,8 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	common "sun-stockanalysis-api/internal/common"
 	"sun-stockanalysis-api/internal/domains/auth"
+	"sun-stockanalysis-api/pkg/apierror"
+	"sun-stockanalysis-api/pkg/response"
 )
 
 type AuthController struct {
@@ -25,7 +26,7 @@ type LoginResponseBody struct {
 
 type LoginResponse struct {
 	Status int `status:"default"`
-	Body   common.DataResponse[LoginResponseBody]
+	Body   response.ApiResponse[LoginResponseBody]
 }
 
 type RegisterResponseBody struct {
@@ -34,32 +35,32 @@ type RegisterResponseBody struct {
 
 type RegisterResponse struct {
 	Status int `status:"default"`
-	Body   common.DataResponse[RegisterResponseBody]
+	Body   response.ApiResponse[RegisterResponseBody]
 }
 
 type RefreshResponse struct {
 	Status int `status:"default"`
-	Body   common.DataResponse[LoginResponseBody]
+	Body   response.ApiResponse[LoginResponseBody]
 }
 
 func (c *AuthController) Login(ctx context.Context, input *auth.LoginInput) (*LoginResponse, error) {
 	_ = ctx
 
 	if input.Body.Email == "" || input.Body.Password == "" {
-		return nil, common.NewBadRequest("email and password required")
+		return nil, apierror.NewBadRequest("email and password required")
 	}
 
 	result, err := c.authService.Login(*input)
 	if err != nil {
 		if err == auth.ErrInvalidCredentials {
-			return nil, common.NewUnauthorized("invalid email or password")
+			return nil, apierror.NewUnauthorized("invalid email or password")
 		}
-		return nil, common.NewInternalError(err.Error())
+		return nil, apierror.NewInternalError(err.Error())
 	}
 
 	return &LoginResponse{
 		Status: http.StatusOK,
-		Body: common.SuccessResponse(LoginResponseBody{
+		Body: response.Success(LoginResponseBody{
 			AccessToken:  result.AccessToken,
 			RefreshToken: result.RefreshToken,
 			TokenType:    "Bearer",
@@ -72,20 +73,20 @@ func (c *AuthController) Register(ctx context.Context, input *auth.RegisterInput
 	_ = ctx
 
 	if input.Body.Email == "" || input.Body.Password == "" {
-		return nil, common.NewBadRequest("email and password required")
+		return nil, apierror.NewBadRequest("email and password required")
 	}
 
 	result, err := c.authService.Register(*input)
 	if err != nil {
 		if err == auth.ErrEmailAlreadyExists {
-			return nil, common.NewBadRequest("email already exists")
+			return nil, apierror.NewBadRequest("email already exists")
 		}
-		return nil, common.NewInternalError(err.Error())
+		return nil, apierror.NewInternalError(err.Error())
 	}
 
 	return &RegisterResponse{
 		Status: http.StatusCreated,
-		Body: common.SuccessResponse(RegisterResponseBody{
+		Body: response.Success(RegisterResponseBody{
 			UserID: result.UserID,
 		}),
 	}, nil
@@ -95,20 +96,20 @@ func (c *AuthController) Refresh(ctx context.Context, input *auth.RefreshInput) 
 	_ = ctx
 
 	if input.Body.RefreshToken == "" {
-		return nil, common.NewBadRequest("refresh_token required")
+		return nil, apierror.NewBadRequest("refresh_token required")
 	}
 
 	result, err := c.authService.Refresh(*input)
 	if err != nil {
 		if err == auth.ErrInvalidRefreshToken {
-			return nil, common.NewUnauthorized("invalid refresh token")
+			return nil, apierror.NewUnauthorized("invalid refresh token")
 		}
-		return nil, common.NewInternalError(err.Error())
+		return nil, apierror.NewInternalError(err.Error())
 	}
 
 	return &RefreshResponse{
 		Status: http.StatusOK,
-		Body: common.SuccessResponse(LoginResponseBody{
+		Body: response.Success(LoginResponseBody{
 			AccessToken:  result.AccessToken,
 			RefreshToken: result.RefreshToken,
 			TokenType:    "Bearer",

@@ -5,11 +5,12 @@ import (
 	"errors"
 	"net/http"
 	"testing"
+
 	"github.com/stretchr/testify/suite"
 
-	common "sun-stockanalysis-api/internal/common"
 	"sun-stockanalysis-api/internal/domains/auth"
 	authmock "sun-stockanalysis-api/internal/mocks/domains/auth"
+	"sun-stockanalysis-api/pkg/apierror"
 )
 
 type AuthControllerSuite struct {
@@ -32,7 +33,7 @@ func (s *AuthControllerSuite) TestLogin_ValidationError() {
 
 	s.Nil(resp)
 	s.Error(err)
-	s.Equal(common.ErrCodeBadRequest, err.(*common.APIError).Code)
+	s.Equal(apierror.ErrCodeBadRequest, err.(*apierror.APIError).Code)
 }
 
 func (s *AuthControllerSuite) TestLogin_InvalidCredentials() {
@@ -46,7 +47,7 @@ func (s *AuthControllerSuite) TestLogin_InvalidCredentials() {
 
 	s.Nil(resp)
 	s.Error(err)
-	s.Equal(common.ErrCodeUnauthorized, err.(*common.APIError).Code)
+	s.Equal(apierror.ErrCodeUnauthorized, err.(*apierror.APIError).Code)
 }
 
 func (s *AuthControllerSuite) TestLogin_InternalError() {
@@ -60,7 +61,7 @@ func (s *AuthControllerSuite) TestLogin_InternalError() {
 
 	s.Nil(resp)
 	s.Error(err)
-	s.Equal(common.ErrCodeInternalError, err.(*common.APIError).Code)
+	s.Equal(apierror.ErrCodeInternalError, err.(*apierror.APIError).Code)
 }
 
 func (s *AuthControllerSuite) TestLogin_Success() {
@@ -94,7 +95,7 @@ func (s *AuthControllerSuite) TestRegister_ValidationError() {
 
 	s.Nil(resp)
 	s.Error(err)
-	s.Equal(common.ErrCodeBadRequest, err.(*common.APIError).Code)
+	s.Equal(apierror.ErrCodeBadRequest, err.(*apierror.APIError).Code)
 }
 
 func (s *AuthControllerSuite) TestRegister_EmailExists() {
@@ -108,7 +109,7 @@ func (s *AuthControllerSuite) TestRegister_EmailExists() {
 
 	s.Nil(resp)
 	s.Error(err)
-	s.Equal(common.ErrCodeBadRequest, err.(*common.APIError).Code)
+	s.Equal(apierror.ErrCodeBadRequest, err.(*apierror.APIError).Code)
 }
 
 func (s *AuthControllerSuite) TestRegister_InternalError() {
@@ -122,7 +123,7 @@ func (s *AuthControllerSuite) TestRegister_InternalError() {
 
 	s.Nil(resp)
 	s.Error(err)
-	s.Equal(common.ErrCodeInternalError, err.(*common.APIError).Code)
+	s.Equal(apierror.ErrCodeInternalError, err.(*apierror.APIError).Code)
 }
 
 func (s *AuthControllerSuite) TestRegister_Success() {
@@ -152,7 +153,7 @@ func (s *AuthControllerSuite) TestRefresh_ValidationError() {
 
 	s.Nil(resp)
 	s.Error(err)
-	s.Equal(common.ErrCodeBadRequest, err.(*common.APIError).Code)
+	s.Equal(apierror.ErrCodeBadRequest, err.(*apierror.APIError).Code)
 }
 
 func (s *AuthControllerSuite) TestRefresh_InvalidToken() {
@@ -165,7 +166,7 @@ func (s *AuthControllerSuite) TestRefresh_InvalidToken() {
 
 	s.Nil(resp)
 	s.Error(err)
-	s.Equal(common.ErrCodeUnauthorized, err.(*common.APIError).Code)
+	s.Equal(apierror.ErrCodeUnauthorized, err.(*apierror.APIError).Code)
 }
 
 func (s *AuthControllerSuite) TestRefresh_InternalError() {
@@ -178,7 +179,7 @@ func (s *AuthControllerSuite) TestRefresh_InternalError() {
 
 	s.Nil(resp)
 	s.Error(err)
-	s.Equal(common.ErrCodeInternalError, err.(*common.APIError).Code)
+	s.Equal(apierror.ErrCodeInternalError, err.(*apierror.APIError).Code)
 }
 
 func (s *AuthControllerSuite) TestRefresh_Success() {

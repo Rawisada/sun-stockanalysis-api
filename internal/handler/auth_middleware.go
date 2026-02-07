@@ -10,7 +10,8 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/golang-jwt/jwt/v5"
 
-	common "sun-stockanalysis-api/internal/common"
+	"sun-stockanalysis-api/pkg/response"
+	"sun-stockanalysis-api/pkg/status"
 )
 
 type authContextKey struct{}
@@ -72,8 +73,24 @@ func authMiddleware(secret, issuer string) func(ctx huma.Context, next func(huma
 	}
 }
 
-func writeAuthError(ctx huma.Context, status int, message string) {
-	ctx.SetStatus(status)
+func writeAuthError(ctx huma.Context, statusCode int, message string) {
+	ctx.SetStatus(statusCode)
 	ctx.SetHeader("Content-Type", "application/json; charset=utf-8")
-	_ = json.NewEncoder(ctx.BodyWriter()).Encode(common.NewErrorResponse(status, message))
+	code, msg := statusForHTTP(statusCode)
+	_ = json.NewEncoder(ctx.BodyWriter()).Encode(response.Error(code, msg, message))
+}
+
+func statusForHTTP(httpStatus int) (string, string) {
+	switch httpStatus {
+	case http.StatusBadRequest:
+		return status.CodeInvalidParam, status.MsgInvalidParam
+	case http.StatusUnauthorized:
+		return status.CodeUnauthorized, status.MsgUnauthorized
+	case http.StatusRequestTimeout:
+		return status.CodeRequestTimeout, status.MsgRequestTimeout
+	case http.StatusInternalServerError:
+		return status.CodeSystemError, status.MsgSystemError
+	default:
+		return status.CodeGeneralError, status.MsgGeneralError
+	}
 }
