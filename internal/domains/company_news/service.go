@@ -3,6 +3,7 @@ package company_news
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,6 +22,7 @@ const (
 
 type CompanyNewsService interface {
 	Start(ctx context.Context)
+	ListBySymbolAndDate(ctx context.Context, symbol string, start, end time.Time) ([]models.CompanyNews, error)
 }
 
 type HTTPClient interface {
@@ -56,6 +58,27 @@ func NewCompanyNewsService(
 
 func (s *CompanyNewsServiceImpl) Start(ctx context.Context) {
 	go s.runScheduler(ctx)
+}
+
+func (s *CompanyNewsServiceImpl) ListBySymbolAndDate(ctx context.Context, symbol string, start, end time.Time) ([]models.CompanyNews, error) {
+	if symbol == "" {
+		return nil, errors.New("symbol is empty")
+	}
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	relations, err := s.relationRepo.ListRelationSymbolsBySymbol(symbol)
+	if err != nil {
+		return nil, err
+	}
+	if len(relations) == 0 {
+		return []models.CompanyNews{}, nil
+	}
+
+	return s.companyRepo.FindBySymbolsAndDate(relations, start, end)
 }
 
 func (s *CompanyNewsServiceImpl) runScheduler(ctx context.Context) {

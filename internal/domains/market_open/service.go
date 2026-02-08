@@ -122,7 +122,7 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 		}
 
 		session := strings.ToLower(strings.TrimSpace(status.session()))
-		s.logStatus(session, status)
+		s.logStatus(status)
 		switch session {
 		case "pre-market":
 			sleepContext(ctx, pollInterval)
@@ -157,14 +157,26 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 	}
 }
 
-func (s *MarketOpenServiceImpl) logStatus(session string, status *finnhubMarketStatusResponse) {
+func (s *MarketOpenServiceImpl) logStatus(status *finnhubMarketStatusResponse) {
 	correlationID := uuid.NewString()
+	session := ""
+	exchange := ""
+	isOpen := false
+	timestamp := int64(0)
+	timezone := ""
+	if status != nil {
+		session = status.session()
+		exchange = status.Exchange
+		isOpen = status.IsOpen
+		timestamp = status.T
+		timezone = status.Timezone
+	}
 	message := fmt.Sprintf("market status: session=%s exchange=%s isOpen=%t t=%d timezone=%s",
 		session,
-		status.Exchange,
-		status.IsOpen,
-		status.T,
-		status.Timezone,
+		exchange,
+		isOpen,
+		timestamp,
+		timezone,
 	)
 	if s.log != nil {
 		s.log.With("correlation_id", correlationID).Infof(message)

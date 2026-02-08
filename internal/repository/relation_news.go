@@ -11,6 +11,7 @@ import (
 type RelationNewsRepository interface {
 	CreateMany(items []models.RelationNews) error
 	ListDistinctRelationSymbols() ([]string, error)
+	ListRelationSymbolsBySymbol(symbol string) ([]string, error)
 }
 
 type RelationNewsRepositoryImpl struct {
@@ -33,6 +34,20 @@ func (r *RelationNewsRepositoryImpl) ListDistinctRelationSymbols() ([]string, er
 	if err := r.db.Model(&models.RelationNews{}).
 		Select("distinct relation_symbol").
 		Where("relation_symbol <> ''").
+		Pluck("relation_symbol", &symbols).Error; err != nil {
+		return nil, err
+	}
+	return symbols, nil
+}
+
+func (r *RelationNewsRepositoryImpl) ListRelationSymbolsBySymbol(symbol string) ([]string, error) {
+	if symbol == "" {
+		return nil, errors.New("symbol is empty")
+	}
+	var symbols []string
+	if err := r.db.Model(&models.RelationNews{}).
+		Select("distinct relation_symbol").
+		Where("symbol = ? AND relation_symbol <> ''", symbol).
 		Pluck("relation_symbol", &symbols).Error; err != nil {
 		return nil, err
 	}

@@ -16,6 +16,7 @@ type StockQuoteRepository interface {
 	FindBySymbolBetween(symbol string, start, end time.Time) ([]models.StockQuote, error)
 	FindAll() ([]models.StockQuote, error)
 	FindBySymbol(symbol string) ([]models.StockQuote, error)
+	DeleteBefore(t time.Time) error
 }
 
 type StockQuoteRepositoryImpl struct {
@@ -101,4 +102,13 @@ func (r *StockQuoteRepositoryImpl) FindBySymbol(symbol string) ([]models.StockQu
 		return nil, err
 	}
 	return quotes, nil
+}
+
+func (r *StockQuoteRepositoryImpl) DeleteBefore(t time.Time) error {
+	if t.IsZero() {
+		return nil
+	}
+	return r.db.
+		Where("created_at < ?", t).
+		Delete(&models.StockQuote{}).Error
 }

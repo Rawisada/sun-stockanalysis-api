@@ -15,6 +15,7 @@ type Controllers struct {
 	StockController        *StockController
 	StockQuoteController   *StockQuoteController
 	StockDailyController   *StockDailyController
+	CompanyNewsController  *CompanyNewsController
 	AuthController         *AuthController
 	RelationNewsController *RelationNewsController
 }
@@ -24,6 +25,7 @@ func NewControllers(
 	stockController *StockController,
 	stockQuoteController *StockQuoteController,
 	stockDailyController *StockDailyController,
+	companyNewsController *CompanyNewsController,
 	authController *AuthController,
 	relationNewsController *RelationNewsController,
 ) *Controllers {
@@ -32,6 +34,7 @@ func NewControllers(
 		StockController:        stockController,
 		StockQuoteController:   stockQuoteController,
 		StockDailyController:   stockDailyController,
+		CompanyNewsController:  companyNewsController,
 		AuthController:         authController,
 		RelationNewsController: relationNewsController,
 	}

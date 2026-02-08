@@ -13,6 +13,7 @@ import (
 	"sun-stockanalysis-api/internal/database"
 	"sun-stockanalysis-api/internal/domains/auth"
 	"sun-stockanalysis-api/internal/domains/alert_events"
+	"sun-stockanalysis-api/internal/domains/cleanup"
 	"sun-stockanalysis-api/internal/domains/company_news"
 	"sun-stockanalysis-api/internal/domains/market_open"
 	"sun-stockanalysis-api/internal/domains/relation_news"
@@ -71,6 +72,7 @@ func main() {
 	relationNewsService := relation_news.NewRelationNewsService(relationNewsRepo)
 	companyNewsRepo := repository.NewCompanyNewsRepository(db)
 	companyNewsService := company_news.NewCompanyNewsService(relationNewsRepo, companyNewsRepo, nil, cfg.Finnhub.Token, logg)
+	companyNewsController := controllers.NewCompanyNewsController(companyNewsService)
 	healthRepo := repository.NewHealthRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
@@ -79,11 +81,13 @@ func main() {
 	relationNewsController := controllers.NewRelationNewsController(relationNewsService)
 	marketOpenRepo := repository.NewMarketOpenRepository(db)
 	marketOpenService := market_open.NewMarketOpenService(marketOpenRepo, nil, cfg.Finnhub.Token, stockQuoteService, stockDailyService, logg)
+	cleanupService := cleanup.NewCleanupService(stockQuoteRepo, companyNewsRepo, 15)
 	marketOpenService.Start(context.Background())
 	companyNewsService.Start(context.Background())
+	cleanupService.Start(context.Background())
 
 	healthController := controllers.NewHealthController(healthRepo, "1.0.0")
-	appControllers := controllers.NewControllers(healthController, stockController, stockQuoteController, stockDailyController, authController, relationNewsController)
+	appControllers := controllers.NewControllers(healthController, stockController, stockQuoteController, stockDailyController, companyNewsController, authController, relationNewsController)
 
 	// Fiber server
 	srv := server.NewServer(cfg, appControllers, alertHub, logg)
