@@ -26,6 +26,7 @@ var (
 
 type StockDailyService interface {
 	BuildForWindow(ctx context.Context, start, end time.Time) error
+	ListBySymbol(ctx context.Context, symbol string) ([]models.StockDaily, error)
 }
 
 type StockDailyServiceImpl struct {
@@ -71,8 +72,8 @@ func (s *StockDailyServiceImpl) BuildForWindow(ctx context.Context, start, end t
 
 		avg, high, low := summarizePrices(quotes)
 
-		ema20 := s.calculateEMA(symbol, last.PriceCurrency, emaPeriod20)
-		ema100 := s.calculateEMA(symbol, last.PriceCurrency, emaPeriod100)
+		ema20 := s.calculateEMA(symbol, last.PriceCurrent, emaPeriod20)
+		ema100 := s.calculateEMA(symbol, last.PriceCurrent, emaPeriod100)
 		emaTrend := 0
 		if ema20 > ema100{
 			emaTrend = 1
@@ -87,8 +88,8 @@ func (s *StockDailyServiceImpl) BuildForWindow(ctx context.Context, start, end t
 			PriceAverage:   avg,
 			PriceHigh:      high,
 			PriceLow:       low,
-			PriceOpen:      first.PriceCurrency,
-			PricePrevClose: last.PriceCurrency,
+			PriceOpen:      first.PriceCurrent,
+			PricePrevClose: last.PriceCurrent,
 			ChangePrice:    last.ChangePrice,
 			ChangePercent:  last.ChangePercent,
 			DeltaPrice:     high - low,
@@ -103,6 +104,19 @@ func (s *StockDailyServiceImpl) BuildForWindow(ctx context.Context, start, end t
 		}
 	}
 	return nil
+}
+
+func (s *StockDailyServiceImpl) ListBySymbol(ctx context.Context, symbol string) ([]models.StockDaily, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+	symbol = strings.TrimSpace(symbol)
+	if symbol == "" {
+		return nil, errors.New("symbol is empty")
+	}
+	return s.metricRepo.FindBySymbol(symbol)
 }
 
 func (s *StockDailyServiceImpl) calculateEMA(symbol string, current float64, period int) float64 {
@@ -136,10 +150,10 @@ func summarizePrices(quotes []models.StockQuote) (avg float64, high float64, low
 		return 0, 0, 0
 	}
 	sum := 0.0
-	high = quotes[0].PriceCurrency
-	low = quotes[0].PriceCurrency
+	high = quotes[0].PriceCurrent
+	low = quotes[0].PriceCurrent
 	for _, q := range quotes {
-		price := q.PriceCurrency
+		price := q.PriceCurrent
 		sum += price
 		if price > high {
 			high = price

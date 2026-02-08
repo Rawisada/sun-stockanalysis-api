@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"sun-stockanalysis-api/internal/models"
+	"sun-stockanalysis-api/internal/realtime"
 	"sun-stockanalysis-api/internal/repository"
 )
 
@@ -15,15 +16,18 @@ type AlertEventService interface {
 type AlertEventServiceImpl struct {
 	quoteRepo repository.StockQuoteRepository
 	eventRepo repository.AlertEventRepository
+	notifier  realtime.AlertEventNotifier
 }
 
 func NewAlertEventService(
 	quoteRepo repository.StockQuoteRepository,
 	eventRepo repository.AlertEventRepository,
+	notifier realtime.AlertEventNotifier,
 ) AlertEventService {
 	return &AlertEventServiceImpl{
 		quoteRepo: quoteRepo,
 		eventRepo: eventRepo,
+		notifier:  notifier,
 	}
 }
 
@@ -51,23 +55,35 @@ func (s *AlertEventServiceImpl) BuildForSymbol(ctx context.Context, symbol strin
 	latest := quotes[0]
 	trendTanhEMA := signFloat(latest.ChangeTanhEMA)
 
-	scoreema, ok := scoreFromTrend(trendEMA20, trendTanhEMA)
+	scoreEMA, ok := scoreFromTrend(trendEMA20, trendTanhEMA)
 	if !ok {
 		return nil
 	}
 
-	if latest.PriceCurrency == latest.EMA100 {
-		scorepcrossema += 1
+	scorePCrossEMA := 0
+	if latest.PriceCurrent == latest.EMA100 {
+		scorePCrossEMA = 1
 	}
 
 	event := &models.AlertEvent{
-		Symbol:       symbol,
-		TrendEMA20:   trendEMA20,
-		TrendTanhEMA: trendTanhEMA,
-		ScoreEMA:        float64(scoreema),
-		ScorePCrossEMA: float64(scorepcrossema),
+		Symbol:         symbol,
+		TrendEMA20:     trendEMA20,
+		TrendTanhEMA:   trendTanhEMA,
+		ScoreEMA:       float64(scoreEMA),
+		ScorePCrossEMA: float64(scorePCrossEMA),
 	}
-	return s.eventRepo.Create(event)
+	if scoreEMA == 2 || scoreEMA == 1 || scoreEMA == -1 || scoreEMA == -2 {
+		if err := s.eventRepo.Create(event); err != nil {
+			return err
+		}
+	}
+	if s.notifier != nil {
+		message := messageForScore(scoreEMA)
+		if message != "" {
+			s.notifier.Notify(event, message)
+		}
+	}
+	return nil
 }
 
 func dayBoundsBangkok(t time.Time) (time.Time, time.Time) {
@@ -107,4 +123,19 @@ func scoreFromTrend(trendEMA20, trendTanhEMA int) (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+func messageForScore(scoreEMA int) string {
+	switch scoreEMA {
+	case 1:
+		return "ควรซื้อ/จับตามอง"
+	case 2:
+		return "ต้องซื้อ"
+	case -1:
+		return "ควรขาย/จับตามอง"
+	case -2:
+		return "ต้องขาย"
+	default:
+		return ""
+	}
 }

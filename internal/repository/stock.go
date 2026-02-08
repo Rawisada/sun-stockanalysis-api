@@ -11,6 +11,7 @@ type StockRepository interface {
 	FindByID(id uuid.UUID) (*models.Stock, error)
 	Create(stock *models.Stock) error
 	ListSymbols() ([]string, error)
+	FindAll() ([]models.Stock, error)
 	EnsureMasterAssetType(name string) error
 	EnsureMasterExchange(name string) error
 	EnsureMasterSector(name string) error
@@ -44,6 +45,16 @@ func (r *StockRepositoryImpl) ListSymbols() ([]string, error) {
 		return nil, err
 	}
 	return symbols, nil
+}
+
+func (r *StockRepositoryImpl) FindAll() ([]models.Stock, error) {
+	var stocks []models.Stock
+	if err := r.db.
+		Order("created_at desc").
+		Find(&stocks).Error; err != nil {
+		return nil, err
+	}
+	return stocks, nil
 }
 
 func (r *StockRepositoryImpl) EnsureMasterAssetType(name string) error {

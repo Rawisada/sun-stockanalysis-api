@@ -42,6 +42,7 @@ type StockQuoteService interface {
 	Start(ctx context.Context)
 	RunOnce(ctx context.Context)
 	Stop()
+	List(ctx context.Context, symbol string) ([]models.StockQuote, error)
 }
 
 type HTTPClient interface {
@@ -106,6 +107,18 @@ func (s *StockQuoteServiceImpl) Stop() {
 
 func (s *StockQuoteServiceImpl) RunOnce(ctx context.Context) {
 	s.fetchAndStoreAll(ctx)
+}
+
+func (s *StockQuoteServiceImpl) List(ctx context.Context, symbol string) ([]models.StockQuote, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+	if strings.TrimSpace(symbol) == "" {
+		return s.quoteRepo.FindAll()
+	}
+	return s.quoteRepo.FindBySymbol(strings.TrimSpace(symbol))
 }
 
 func (s *StockQuoteServiceImpl) run(ctx context.Context) {
@@ -207,9 +220,10 @@ func (s *StockQuoteServiceImpl) fetchAndStoreAll(ctx context.Context) {
 			changeEMA20 = ema20 - prev.EMA20
 			changeTanhEMA = tanhEMA - prev.TanhEMA
 		}
+		createdAt := time.Now().In(time.FixedZone("Asia/Bangkok", 7*60*60)).Truncate(time.Minute)
 		if err := s.quoteRepo.Create(&models.StockQuote{
 			Symbol:        symbol,
-			PriceCurrency: quote.C,
+			PriceCurrent:  quote.C,
 			ChangePrice:   quote.D,
 			ChangePercent: quote.DP,
 			EMA20:         ema20,
@@ -218,6 +232,7 @@ func (s *StockQuoteServiceImpl) fetchAndStoreAll(ctx context.Context) {
 			ChangeEMA20:   changeEMA20,
 			ChangeTanhEMA: changeTanhEMA,
 			EMATrend:      emaTrend,
+			CreatedAt:     models.NewLocalTime(createdAt),
 		}); err != nil {
 			continue
 		}

@@ -60,7 +60,7 @@ func (s *CompanyNewsServiceImpl) Start(ctx context.Context) {
 
 func (s *CompanyNewsServiceImpl) runScheduler(ctx context.Context) {
 	for {
-		wait := nextRunDuration(22, 0, thailandLocation())
+		wait := nextRunDuration(20, 0, thailandLocation())
 		timer := time.NewTimer(wait)
 		select {
 		case <-ctx.Done():

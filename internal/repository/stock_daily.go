@@ -11,6 +11,7 @@ import (
 type StockDailyRepository interface {
 	Create(metric *models.StockDaily) error
 	FindLatestBySymbol(symbol string) (*models.StockDaily, error)
+	FindBySymbol(symbol string) ([]models.StockDaily, error)
 }
 
 type StockDailyRepositoryImpl struct {
@@ -40,4 +41,18 @@ func (r *StockDailyRepositoryImpl) FindLatestBySymbol(symbol string) (*models.St
 		return nil, err
 	}
 	return &metric, nil
+}
+
+func (r *StockDailyRepositoryImpl) FindBySymbol(symbol string) ([]models.StockDaily, error) {
+	if symbol == "" {
+		return nil, errors.New("symbol is empty")
+	}
+	var metrics []models.StockDaily
+	if err := r.db.
+		Where("symbol = ?", symbol).
+		Order("created_at desc").
+		Find(&metrics).Error; err != nil {
+		return nil, err
+	}
+	return metrics, nil
 }

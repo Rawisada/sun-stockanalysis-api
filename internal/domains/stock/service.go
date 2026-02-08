@@ -17,6 +17,7 @@ import (
 type StockService interface {
 	GetStock(id uuid.UUID) (*models.Stock, error)
 	CreateStock(input CreateStockInput) error
+	ListAll() ([]models.Stock, error)
 }
 
 type HTTPClient interface {
@@ -84,6 +85,10 @@ func (s *StockServiceImpl) CreateStock(input CreateStockInput) error {
 		AssetType: assetType,
 		Currency:  profile.Currency,
 	})
+}
+
+func (s *StockServiceImpl) ListAll() ([]models.Stock, error) {
+	return s.repo.FindAll()
 }
 
 type finnhubProfileResponse struct {

@@ -17,6 +17,8 @@ func RegisterRoutes(rootApi huma.API, controllers *controllers.Controllers, auth
 
 	routes.RegisterAuthRoutes(v1Api, controllers)
 	routes.RegisterStockRoutes(v1Api, controllers, authMiddleware(authSecret, authIssuer))
+	routes.RegisterStockQuoteRoutes(v1Api, controllers, authMiddleware(authSecret, authIssuer))
+	routes.RegisterStockDailyRoutes(v1Api, controllers, authMiddleware(authSecret, authIssuer))
 	routes.RegisterRelationNewsRoutes(v1Api, controllers, authMiddleware(authSecret, authIssuer))
 }
 

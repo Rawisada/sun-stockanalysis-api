@@ -1,23 +1,23 @@
-server:
-  port: 8080
-  allowOrigins:
-    - "*"
-  bodyLimit: "10M" # MiB
-  timeout: "30s"
+# server:
+#   port: 8080
+#   allowOrigins:
+#     - "*"
+#   bodyLimit: "10M" # MiB
+#   timeout: "30s"
  
-state:
-  secret: "0DxgRVY2jzQFOaViB6IYbsWAva8p7gqskl/Q7Q+oUOY="
-  expiredsAt: 1800 #second
-  issuer: "sun-stockanalysis-api"
+# state:
+#   secret: "0DxgRVY2jzQFOaViB6IYbsWAva8p7gqskl/Q7Q+oUOY="
+#   expiredsAt: 1800 #second
+#   issuer: "sun-stockanalysis-api"
 
-database:
-  host: localhost
-  port: 5432
-  user: postgres
-  password: root
-  dbname: postgres
-  sslmode: disable
-  schema: stock
+# database:
+#   host: localhost
+#   port: 5432
+#   user: postgres
+#   password: root
+#   dbname: postgres
+#   sslmode: disable
+#   schema: stock
 
-finnhub:
-  token: "d2unplpr01qq994ghcd0d2unplpr01qq994ghcdg"
+# finnhub:
+#   token: "d2unplpr01qq994ghcd0d2unplpr01qq994ghcdg"

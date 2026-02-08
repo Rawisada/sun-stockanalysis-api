@@ -50,6 +50,26 @@ func (c *StockController) GetStock(ctx context.Context, input *GetStockInput) (*
 	}, nil
 }
 
+type StockListResponse struct {
+	Status int `status:"default"`
+	Body   response.ApiResponse[[]models.Stock]
+}
+
+func (c *StockController) ListStocks(ctx context.Context, input *EmptyRequest) (*StockListResponse, error) {
+	_ = ctx
+	_ = input
+
+	stocks, err := c.stockService.ListAll()
+	if err != nil {
+		return nil, apierror.NewInternalError(err.Error())
+	}
+
+	return &StockListResponse{
+		Status: http.StatusOK,
+		Body:   response.Success(stocks),
+	}, nil
+}
+
 type StockCreateResponse struct {
 	Status int `status:"default"`
 	Body   response.ApiResponse[any]

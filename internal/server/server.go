@@ -9,10 +9,12 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humafiber"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 
 	"sun-stockanalysis-api/internal/configurations"
 	"sun-stockanalysis-api/internal/controllers"
 	"sun-stockanalysis-api/internal/handler"
+	"sun-stockanalysis-api/internal/realtime"
 	"sun-stockanalysis-api/pkg/apierror"
 	"sun-stockanalysis-api/pkg/logger"
 )
@@ -23,7 +25,7 @@ type Server struct {
 	log *logger.Logger
 }
 
-func NewServer(cfg *configurations.Config, controllers *controllers.Controllers, log *logger.Logger) *Server {
+func NewServer(cfg *configurations.Config, controllers *controllers.Controllers, alertHub *realtime.AlertHub, log *logger.Logger) *Server {
 	app := fiber.New(fiber.Config{
 		AppName: "sun-stockanalysis-api",
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -40,7 +42,8 @@ func NewServer(cfg *configurations.Config, controllers *controllers.Controllers,
 		if path == contextPath+"/docs" ||
 			path == contextPath+"/openapi.json" ||
 			path == contextPath+"/openapi.yaml" ||
-			path == contextPath+"/schemas" {
+			path == contextPath+"/schemas" ||
+			path == contextPath+"/alerts/ws" {
 			return c.Next()
 		}
 
@@ -93,6 +96,19 @@ func NewServer(cfg *configurations.Config, controllers *controllers.Controllers,
 	handler.RegisterRoutes(humaAPI, controllers, cfg.State.Secret, cfg.State.Issuer)
 	addCorrelationIDToOpenAPI(humaAPI)
 	addBearerAuthToOpenAPI(humaAPI)
+
+	if alertHub != nil {
+		apiGroup.Get("/alerts/ws", websocket.New(func(c *websocket.Conn) {
+			alertHub.Register(c)
+			defer alertHub.Unregister(c)
+
+			for {
+				if _, _, err := c.ReadMessage(); err != nil {
+					break
+				}
+			}
+		}))
+	}
 
 	app.Get(contextPath+"/docs", func(c *fiber.Ctx) error {
 		c.Set("Content-Type", "text/html; charset=utf-8")

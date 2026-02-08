@@ -7,7 +7,7 @@ import (
 type StockQuote struct {
 	ID            uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 	Symbol        string    `gorm:"type:varchar(64);not null;index" json:"symbol"`
-	PriceCurrency float64   `gorm:"not null" json:"price_currency"`
+	PriceCurrent  float64   `gorm:"column:price_current;not null" json:"price_current"`
 	ChangePrice   float64   `gorm:"not null" json:"change_price"`
 	ChangePercent float64   `gorm:"not null" json:"change_percent"`
 	EMA20         float64   `gorm:"column:ema_20;not null" json:"ema_20"`

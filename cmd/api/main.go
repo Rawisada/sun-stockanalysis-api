@@ -21,6 +21,7 @@ import (
 	"sun-stockanalysis-api/internal/domains/stock_quotes"
 	"sun-stockanalysis-api/internal/models"
 	"sun-stockanalysis-api/internal/repository"
+	"sun-stockanalysis-api/internal/realtime"
 	"sun-stockanalysis-api/internal/server"
 	"sun-stockanalysis-api/pkg/logger"
 )
@@ -59,10 +60,13 @@ func main() {
 	stockController := controllers.NewStockController(stockService)
 	stockQuoteRepo := repository.NewStockQuoteRepository(db)
 	alertEventRepo := repository.NewAlertEventRepository(db)
-	alertEventService := alert_events.NewAlertEventService(stockQuoteRepo, alertEventRepo)
+	alertHub := realtime.NewAlertHub()
+	alertEventService := alert_events.NewAlertEventService(stockQuoteRepo, alertEventRepo, alertHub)
 	stockQuoteService := stock_quotes.NewStockQuoteService(stockRepo, stockQuoteRepo, alertEventService, nil, cfg.Finnhub.Token)
+	stockQuoteController := controllers.NewStockQuoteController(stockQuoteService)
 	stockDailyRepo := repository.NewStockDailyRepository(db)
 	stockDailyService := stock_daily.NewStockDailyService(stockRepo, stockQuoteRepo, stockDailyRepo)
+	stockDailyController := controllers.NewStockDailyController(stockDailyService)
 	relationNewsRepo := repository.NewRelationNewsRepository(db)
 	relationNewsService := relation_news.NewRelationNewsService(relationNewsRepo)
 	companyNewsRepo := repository.NewCompanyNewsRepository(db)
@@ -79,10 +83,10 @@ func main() {
 	companyNewsService.Start(context.Background())
 
 	healthController := controllers.NewHealthController(healthRepo, "1.0.0")
-	appControllers := controllers.NewControllers(healthController, stockController, authController, relationNewsController)
+	appControllers := controllers.NewControllers(healthController, stockController, stockQuoteController, stockDailyController, authController, relationNewsController)
 
 	// Fiber server
-	srv := server.NewServer(cfg, appControllers, logg)
+	srv := server.NewServer(cfg, appControllers, alertHub, logg)
 
 	go func() {
 		logg.Infof("server starting on :%d", cfg.Server.Port)

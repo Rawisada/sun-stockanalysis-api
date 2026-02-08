@@ -14,6 +14,13 @@ func RegisterStockRoutes(api huma.API, controllers *controllers.Controllers, mid
 
 	huma.Register(protected, huma.Operation{
 		Method:  http.MethodGet,
+		Path:    "/stocks",
+		Summary: "List all stocks",
+		Tags:    v1Tags(),
+	}, controllers.StockController.ListStocks)
+
+	huma.Register(protected, huma.Operation{
+		Method:  http.MethodGet,
 		Path:    "/stocks/{id}",
 		Summary: "Get stock by ID",
 		Tags:    v1Tags(),
