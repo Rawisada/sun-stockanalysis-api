@@ -20,8 +20,8 @@ const (
 )
 
 var (
-	emaPeriod20  = getEnvInt("METRIC_EMA_PERIOD20", defaultEMAPeriod20)
-	emaPeriod100 = getEnvInt("METRIC_EMA_PERIOD100", defaultEMAPeriod100)
+	emaPeriod20  = getEnvInt("STOCK_DAILY_EMA_PERIOD20", defaultEMAPeriod20)
+	emaPeriod100 = getEnvInt("STOCK_DAILY_EMA_PERIOD100", defaultEMAPeriod100)
 )
 
 type StockDailyService interface {
@@ -73,6 +73,14 @@ func (s *StockDailyServiceImpl) BuildForWindow(ctx context.Context, start, end t
 
 		ema20 := s.calculateEMA(symbol, last.PriceCurrency, emaPeriod20)
 		ema100 := s.calculateEMA(symbol, last.PriceCurrency, emaPeriod100)
+		emaTrend := 0
+		if ema20 > ema100{
+			emaTrend = 1
+		} else if ema20 < ema100{
+			emaTrend = -1
+		} else if ema20 == ema100{
+			emaTrend = 0
+		}
 
 		metric := &models.StockDaily{
 			Symbol:         symbol,
@@ -87,6 +95,7 @@ func (s *StockDailyServiceImpl) BuildForWindow(ctx context.Context, start, end t
 			EMA20:          ema20,
 			EMA100:         ema100,
 			TradeDate:      tradeDate,
+			EMATrend: emaTrend,
 		}
 
 		if err := s.metricRepo.Create(metric); err != nil {

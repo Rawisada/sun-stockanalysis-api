@@ -83,7 +83,7 @@
 				
 				<option value="file13">sun-stockanalysis-api/internal/domains/stock/service.go (0.0%)</option>
 				
-				<option value="file14">sun-stockanalysis-api/internal/domains/stock_metric/service.go (0.0%)</option>
+				<option value="file14">sun-stockanalysis-api/internal/domains/stock_daily/service.go (0.0%)</option>
 				
 				<option value="file15">sun-stockanalysis-api/internal/domains/stock_quotes/service.go (0.0%)</option>
 				
@@ -115,7 +115,7 @@
 				
 				<option value="file29">sun-stockanalysis-api/internal/models/relation_news.go (0.0%)</option>
 				
-				<option value="file30">sun-stockanalysis-api/internal/models/stock_metric.go (0.0%)</option>
+				<option value="file30">sun-stockanalysis-api/internal/models/stock_daily.go (0.0%)</option>
 				
 				<option value="file31">sun-stockanalysis-api/internal/models/stock_quote.go (0.0%)</option>
 				
@@ -131,7 +131,7 @@
 				
 				<option value="file37">sun-stockanalysis-api/internal/repository/stock.go (0.0%)</option>
 				
-				<option value="file38">sun-stockanalysis-api/internal/repository/stock_metric.go (0.0%)</option>
+				<option value="file38">sun-stockanalysis-api/internal/repository/stock_daily.go (0.0%)</option>
 				
 				<option value="file39">sun-stockanalysis-api/internal/repository/stock_quotes.go (0.0%)</option>
 				
@@ -189,7 +189,7 @@ import (
         "sun-stockanalysis-api/internal/domains/market_open"
         "sun-stockanalysis-api/internal/domains/relation_news"
         "sun-stockanalysis-api/internal/domains/stock"
-        "sun-stockanalysis-api/internal/domains/stock_metric"
+        "sun-stockanalysis-api/internal/domains/stock_daily"
         "sun-stockanalysis-api/internal/domains/stock_quotes"
         "sun-stockanalysis-api/internal/models"
         "sun-stockanalysis-api/internal/repository"
@@ -217,7 +217,7 @@ func main() <span class="cov0" title="0">{
                 &amp;models.MasterExchange{},
                 &amp;models.MasterSector{},
                 &amp;models.MarketOpen{},
-                &amp;models.StockMetric{},
+                &amp;models.StockDaily{},
                 &amp;models.RelationNews{},
                 &amp;models.CompanyNews{},
         ); err != nil </span><span class="cov0" title="0">{
@@ -230,8 +230,8 @@ func main() <span class="cov0" title="0">{
         stockController := controllers.NewStockController(stockService)
         stockQuoteRepo := repository.NewStockQuoteRepository(db)
         stockQuoteService := stock_quotes.NewStockQuoteService(stockRepo, stockQuoteRepo, nil, cfg.Finnhub.Token)
-        stockMetricRepo := repository.NewStockMetricRepository(db)
-        stockMetricService := stock_metric.NewStockMetricService(stockRepo, stockQuoteRepo, stockMetricRepo)
+        stockDailyRepo := repository.NewStockDailyRepository(db)
+        stockDailyService := stock_daily.NewStockDailyService(stockRepo, stockQuoteRepo, stockDailyRepo)
         relationNewsRepo := repository.NewRelationNewsRepository(db)
         relationNewsService := relation_news.NewRelationNewsService(relationNewsRepo)
         companyNewsRepo := repository.NewCompanyNewsRepository(db)
@@ -243,7 +243,7 @@ func main() <span class="cov0" title="0">{
         authController := controllers.NewAuthController(authService)
         relationNewsController := controllers.NewRelationNewsController(relationNewsService)
         marketOpenRepo := repository.NewMarketOpenRepository(db)
-        marketOpenService := market_open.NewMarketOpenService(marketOpenRepo, nil, cfg.Finnhub.Token, stockQuoteService, stockMetricService, logg)
+        marketOpenService := market_open.NewMarketOpenService(marketOpenRepo, nil, cfg.Finnhub.Token, stockQuoteService, stockDailyService, logg)
         marketOpenService.Start(context.Background())
         companyNewsService.Start(context.Background())
 
@@ -1270,17 +1270,17 @@ type StockQuoteService interface {
         Stop()
 }
 
-type StockMetricService interface {
+type StockDailyService interface {
         BuildForWindow(ctx context.Context, start, end time.Time) error
 }
 
 type MarketOpenServiceImpl struct {
-        repo          repository.MarketOpenRepository
-        httpClient    HTTPClient
-        finnhubToken  string
-        quoteService  StockQuoteService
-        metricService StockMetricService
-        log           *logger.Logger
+        repo         repository.MarketOpenRepository
+        httpClient   HTTPClient
+        finnhubToken string
+        quoteService StockQuoteService
+        dailyService StockDailyService
+        log          *logger.Logger
 }
 
 func NewMarketOpenService(
@@ -1288,19 +1288,19 @@ func NewMarketOpenService(
         httpClient HTTPClient,
         finnhubToken string,
         quoteService StockQuoteService,
-        metricService StockMetricService,
+        dailyService StockDailyService,
         log *logger.Logger,
 ) MarketOpenService <span class="cov0" title="0">{
         if httpClient == nil </span><span class="cov0" title="0">{
                 httpClient = &amp;http.Client{Timeout: 10 * time.Second}
         }</span>
         <span class="cov0" title="0">return &amp;MarketOpenServiceImpl{
-                repo:          repo,
-                httpClient:    httpClient,
-                finnhubToken:  finnhubToken,
-                quoteService:  quoteService,
-                metricService: metricService,
-                log:           log,
+                repo:         repo,
+                httpClient:   httpClient,
+                finnhubToken: finnhubToken,
+                quoteService: quoteService,
+                dailyService: dailyService,
+                log:          log,
         }</span>
 }
 
@@ -1362,9 +1362,9 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) <span class
                                 s.quoteService.RunOnce(ctx)
                                 s.quoteService.Stop()
                                 postHandled = true
-                                if s.metricService != nil </span><span class="cov0" title="0">{
+                                if s.dailyService != nil </span><span class="cov0" title="0">{
                                         start, end := metricsWindow(time.Now())
-                                        _ = s.metricService.BuildForWindow(ctx, start, end)
+                                        _ = s.dailyService.BuildForWindow(ctx, start, end)
                                 }</span>
                         }
                         <span class="cov0" title="0">if shouldStopForDay(time.Now()) </span><span class="cov0" title="0">{
@@ -1755,7 +1755,7 @@ func (s *StockServiceImpl) fetchAssetType(symbol string) (string, error) <span c
 }
 </pre>
 		
-		<pre class="file" id="file14" style="display: none">package stock_metric
+		<pre class="file" id="file14" style="display: none">package stock_daily
 
 import (
         "context"
@@ -1777,33 +1777,33 @@ const (
 )
 
 var (
-        emaPeriod20  = getEnvInt("METRIC_EMA_PERIOD20", defaultEMAPeriod20)
-        emaPeriod100 = getEnvInt("METRIC_EMA_PERIOD100", defaultEMAPeriod100)
+        emaPeriod20  = getEnvInt("STOCK_DAILY_EMA_PERIOD20", defaultEMAPeriod20)
+        emaPeriod100 = getEnvInt("STOCK_DAILY_EMA_PERIOD100", defaultEMAPeriod100)
 )
 
-type StockMetricService interface {
+type StockDailyService interface {
         BuildForWindow(ctx context.Context, start, end time.Time) error
 }
 
-type StockMetricServiceImpl struct {
+type StockDailyServiceImpl struct {
         stockRepo  repository.StockRepository
         quoteRepo  repository.StockQuoteRepository
-        metricRepo repository.StockMetricRepository
+        metricRepo repository.StockDailyRepository
 }
 
-func NewStockMetricService(
+func NewStockDailyService(
         stockRepo repository.StockRepository,
         quoteRepo repository.StockQuoteRepository,
-        metricRepo repository.StockMetricRepository,
-) StockMetricService <span class="cov0" title="0">{
-        return &amp;StockMetricServiceImpl{
+        metricRepo repository.StockDailyRepository,
+) StockDailyService <span class="cov0" title="0">{
+        return &amp;StockDailyServiceImpl{
                 stockRepo:  stockRepo,
                 quoteRepo:  quoteRepo,
                 metricRepo: metricRepo,
         }
 }</span>
 
-func (s *StockMetricServiceImpl) BuildForWindow(ctx context.Context, start, end time.Time) error <span class="cov0" title="0">{
+func (s *StockDailyServiceImpl) BuildForWindow(ctx context.Context, start, end time.Time) error <span class="cov0" title="0">{
         symbols, err := s.stockRepo.ListSymbols()
         if err != nil || len(symbols) == 0 </span><span class="cov0" title="0">{
                 return err
@@ -1831,7 +1831,7 @@ func (s *StockMetricServiceImpl) BuildForWindow(ctx context.Context, start, end 
                 ema20 := s.calculateEMA(symbol, last.PriceCurrency, emaPeriod20)
                 ema100 := s.calculateEMA(symbol, last.PriceCurrency, emaPeriod100)
 
-                metric := &amp;models.StockMetric{
+                metric := &amp;models.StockDaily{
                         Symbol:         symbol,
                         PriceAverage:   avg,
                         PriceHigh:      high,
@@ -1853,7 +1853,7 @@ func (s *StockMetricServiceImpl) BuildForWindow(ctx context.Context, start, end 
         <span class="cov0" title="0">return nil</span>
 }
 
-func (s *StockMetricServiceImpl) calculateEMA(symbol string, current float64, period int) float64 <span class="cov0" title="0">{
+func (s *StockDailyServiceImpl) calculateEMA(symbol string, current float64, period int) float64 <span class="cov0" title="0">{
         if period &lt;= 1 </span><span class="cov0" title="0">{
                 return current
         }</span>
@@ -3881,7 +3881,7 @@ import (
         "github.com/google/uuid"
 )
 
-type StockMetric struct {
+type StockDaily struct {
         ID             uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
         Symbol         string    `gorm:"type:varchar(64);not null;index" json:"symbol"`
         PriceAverage   float64   `gorm:"not null" json:"price_average"`
@@ -3899,8 +3899,8 @@ type StockMetric struct {
         CreatedAt      LocalTime `gorm:"autoCreateTime" json:"created_at"`
 }
 
-func (StockMetric) TableName() string <span class="cov0" title="0">{
-        return "stock_metric"
+func (StockDaily) TableName() string <span class="cov0" title="0">{
+        return "stock_daily"
 }</span>
 </pre>
 		
@@ -4204,31 +4204,31 @@ import (
         "sun-stockanalysis-api/internal/models"
 )
 
-type StockMetricRepository interface {
-        Create(metric *models.StockMetric) error
-        FindLatestBySymbol(symbol string) (*models.StockMetric, error)
+type StockDailyRepository interface {
+        Create(metric *models.StockDaily) error
+        FindLatestBySymbol(symbol string) (*models.StockDaily, error)
 }
 
-type StockMetricRepositoryImpl struct {
+type StockDailyRepositoryImpl struct {
         db *gorm.DB
 }
 
-func NewStockMetricRepository(db *gorm.DB) StockMetricRepository <span class="cov0" title="0">{
-        return &amp;StockMetricRepositoryImpl{db: db}
+func NewStockDailyRepository(db *gorm.DB) StockDailyRepository <span class="cov0" title="0">{
+        return &amp;StockDailyRepositoryImpl{db: db}
 }</span>
 
-func (r *StockMetricRepositoryImpl) Create(metric *models.StockMetric) error <span class="cov0" title="0">{
+func (r *StockDailyRepositoryImpl) Create(metric *models.StockDaily) error <span class="cov0" title="0">{
         if metric == nil </span><span class="cov0" title="0">{
-                return errors.New("stock metric is nil")
+                return errors.New("stock daily is nil")
         }</span>
         <span class="cov0" title="0">return r.db.Create(metric).Error</span>
 }
 
-func (r *StockMetricRepositoryImpl) FindLatestBySymbol(symbol string) (*models.StockMetric, error) <span class="cov0" title="0">{
+func (r *StockDailyRepositoryImpl) FindLatestBySymbol(symbol string) (*models.StockDaily, error) <span class="cov0" title="0">{
         if symbol == "" </span><span class="cov0" title="0">{
                 return nil, errors.New("symbol is empty")
         }</span>
-        <span class="cov0" title="0">var metric models.StockMetric
+        <span class="cov0" title="0">var metric models.StockDaily
         if err := r.db.
                 Where("symbol = ?", symbol).
                 Order("created_at desc").

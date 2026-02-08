@@ -12,9 +12,11 @@ type StockQuote struct {
 	ChangePercent float64   `gorm:"not null" json:"change_percent"`
 	EMA20         float64   `gorm:"column:ema_20;not null" json:"ema_20"`
 	EMA100        float64   `gorm:"column:ema_100;not null" json:"ema_100"`
-
-	EMATrend  int       `gorm:"column:ema_trend;not null" json:"ema_trend"`
-	CreatedAt LocalTime `gorm:"autoCreateTime" json:"created_at"`
+	TanhEMA       float64   `gorm:"column:tanh_ema;not null" json:"tanh_ema"`
+	ChangeEMA20   float64   `gorm:"column:change_ema_20;not null" json:"change_ema_20"`
+	ChangeTanhEMA float64   `gorm:"column:change_tanh_ema;not null" json:"change_tanh_ema"`
+	EMATrend      int       `gorm:"column:ema_trend;not null" json:"ema_trend"`
+	CreatedAt     LocalTime `gorm:"autoCreateTime" json:"created_at"`
 }
 
 func (StockQuote) TableName() string {

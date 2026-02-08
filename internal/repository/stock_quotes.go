@@ -12,6 +12,7 @@ import (
 type StockQuoteRepository interface {
 	Create(quote *models.StockQuote) error
 	FindLatestBySymbol(symbol string) (*models.StockQuote, error)
+	FindLatestBySymbolBetween(symbol string, start, end time.Time, limit int) ([]models.StockQuote, error)
 	FindBySymbolBetween(symbol string, start, end time.Time) ([]models.StockQuote, error)
 }
 
@@ -42,6 +43,24 @@ func (r *StockQuoteRepositoryImpl) FindLatestBySymbol(symbol string) (*models.St
 		return nil, err
 	}
 	return &quote, nil
+}
+
+func (r *StockQuoteRepositoryImpl) FindLatestBySymbolBetween(symbol string, start, end time.Time, limit int) ([]models.StockQuote, error) {
+	if symbol == "" {
+		return nil, errors.New("symbol is empty")
+	}
+	if limit <= 0 {
+		return []models.StockQuote{}, nil
+	}
+	var quotes []models.StockQuote
+	if err := r.db.
+		Where("symbol = ? AND created_at >= ? AND created_at <= ?", symbol, start, end).
+		Order("created_at desc").
+		Limit(limit).
+		Find(&quotes).Error; err != nil {
+		return nil, err
+	}
+	return quotes, nil
 }
 
 func (r *StockQuoteRepositoryImpl) FindBySymbolBetween(symbol string, start, end time.Time) ([]models.StockQuote, error) {

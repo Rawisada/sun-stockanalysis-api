@@ -49,17 +49,17 @@ type StockQuoteService interface {
 	Stop()
 }
 
-type StockMetricService interface {
+type StockDailyService interface {
 	BuildForWindow(ctx context.Context, start, end time.Time) error
 }
 
 type MarketOpenServiceImpl struct {
-	repo          repository.MarketOpenRepository
-	httpClient    HTTPClient
-	finnhubToken  string
-	quoteService  StockQuoteService
-	metricService StockMetricService
-	log           *logger.Logger
+	repo         repository.MarketOpenRepository
+	httpClient   HTTPClient
+	finnhubToken string
+	quoteService StockQuoteService
+	dailyService StockDailyService
+	log          *logger.Logger
 }
 
 func NewMarketOpenService(
@@ -67,19 +67,19 @@ func NewMarketOpenService(
 	httpClient HTTPClient,
 	finnhubToken string,
 	quoteService StockQuoteService,
-	metricService StockMetricService,
+	dailyService StockDailyService,
 	log *logger.Logger,
 ) MarketOpenService {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 10 * time.Second}
 	}
 	return &MarketOpenServiceImpl{
-		repo:          repo,
-		httpClient:    httpClient,
-		finnhubToken:  finnhubToken,
-		quoteService:  quoteService,
-		metricService: metricService,
-		log:           log,
+		repo:         repo,
+		httpClient:   httpClient,
+		finnhubToken: finnhubToken,
+		quoteService: quoteService,
+		dailyService: dailyService,
+		log:          log,
 	}
 }
 
@@ -141,9 +141,9 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 				s.quoteService.RunOnce(ctx)
 				s.quoteService.Stop()
 				postHandled = true
-				if s.metricService != nil {
+				if s.dailyService != nil {
 					start, end := metricsWindow(time.Now())
-					_ = s.metricService.BuildForWindow(ctx, start, end)
+					_ = s.dailyService.BuildForWindow(ctx, start, end)
 				}
 			}
 			if shouldStopForDay(time.Now()) {

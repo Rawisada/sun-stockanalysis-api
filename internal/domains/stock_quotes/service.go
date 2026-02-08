@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,6 +17,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"sun-stockanalysis-api/internal/domains/alert_events"
 	"sun-stockanalysis-api/internal/models"
 	"sun-stockanalysis-api/internal/repository"
 )
@@ -49,6 +51,7 @@ type HTTPClient interface {
 type StockQuoteServiceImpl struct {
 	stockRepo     repository.StockRepository
 	quoteRepo     repository.StockQuoteRepository
+	alertService  alert_events.AlertEventService
 	httpClient    HTTPClient
 	finnhubToken  string
 	pollInterval  time.Duration
@@ -60,6 +63,7 @@ type StockQuoteServiceImpl struct {
 func NewStockQuoteService(
 	stockRepo repository.StockRepository,
 	quoteRepo repository.StockQuoteRepository,
+	alertService alert_events.AlertEventService,
 	httpClient HTTPClient,
 	finnhubToken string,
 ) StockQuoteService {
@@ -69,6 +73,7 @@ func NewStockQuoteService(
 	return &StockQuoteServiceImpl{
 		stockRepo:     stockRepo,
 		quoteRepo:     quoteRepo,
+		alertService:  alertService,
 		httpClient:    httpClient,
 		finnhubToken:  finnhubToken,
 		pollInterval:  quotePoll,
@@ -181,35 +186,55 @@ func (s *StockQuoteServiceImpl) fetchAndStoreAll(ctx context.Context) {
 		if err != nil || quote == nil {
 			continue
 		}
-		ema20 := s.calculateEMA(symbol, quote.C, emaPeriod20)
-		ema100 := s.calculateEMA(symbol, quote.C, emaPeriod100)
-		_ = s.quoteRepo.Create(&models.StockQuote{
+		prev, err := s.quoteRepo.FindLatestBySymbol(symbol)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			continue
+		}
+		ema20 := s.calculateEMA(quote.C, emaPeriod20, prev)
+		ema100 := s.calculateEMA(quote.C, emaPeriod100, prev)
+		tanhEMA := math.Tanh(ema20-ema100) / 5.0
+		changeEMA20 := 0.0
+		changeTanhEMA := 0.0
+		emaTrend := 0
+		if ema20 > ema100 {
+			emaTrend = 1
+		} else if ema20 < ema100 {
+			emaTrend = -1
+		} else if ema20 == ema100 {
+			emaTrend = 0
+		}
+		if prev != nil {
+			changeEMA20 = ema20 - prev.EMA20
+			changeTanhEMA = tanhEMA - prev.TanhEMA
+		}
+		if err := s.quoteRepo.Create(&models.StockQuote{
 			Symbol:        symbol,
 			PriceCurrency: quote.C,
 			ChangePrice:   quote.D,
 			ChangePercent: quote.DP,
 			EMA20:         ema20,
 			EMA100:        ema100,
-		})
+			TanhEMA:       tanhEMA,
+			ChangeEMA20:   changeEMA20,
+			ChangeTanhEMA: changeTanhEMA,
+			EMATrend:      emaTrend,
+		}); err != nil {
+			continue
+		}
+		if s.alertService != nil {
+			_ = s.alertService.BuildForSymbol(ctx, symbol)
+		}
 	}
 }
 
-func (s *StockQuoteServiceImpl) calculateEMA(symbol string, current float64, period int) float64 {
+func (s *StockQuoteServiceImpl) calculateEMA(current float64, period int, prev *models.StockQuote) float64 {
 	if period <= 1 {
 		return current
 	}
-	prev, err := s.quoteRepo.FindLatestBySymbol(symbol)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return current
-		}
-		return current
-	}
+	emaPrev := current
 	if prev == nil {
 		return current
 	}
-
-	emaPrev := current
 	switch period {
 	case emaPeriod20:
 		emaPrev = prev.EMA20

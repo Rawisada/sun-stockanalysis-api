@@ -12,11 +12,12 @@ import (
 	"sun-stockanalysis-api/internal/controllers"
 	"sun-stockanalysis-api/internal/database"
 	"sun-stockanalysis-api/internal/domains/auth"
+	"sun-stockanalysis-api/internal/domains/alert_events"
 	"sun-stockanalysis-api/internal/domains/company_news"
 	"sun-stockanalysis-api/internal/domains/market_open"
 	"sun-stockanalysis-api/internal/domains/relation_news"
 	"sun-stockanalysis-api/internal/domains/stock"
-	"sun-stockanalysis-api/internal/domains/stock_metric"
+	"sun-stockanalysis-api/internal/domains/stock_daily"
 	"sun-stockanalysis-api/internal/domains/stock_quotes"
 	"sun-stockanalysis-api/internal/models"
 	"sun-stockanalysis-api/internal/repository"
@@ -44,9 +45,10 @@ func main() {
 		&models.MasterExchange{},
 		&models.MasterSector{},
 		&models.MarketOpen{},
-		&models.StockMetric{},
+		&models.StockDaily{},
 		&models.RelationNews{},
 		&models.CompanyNews{},
+		&models.AlertEvent{},
 	); err != nil {
 		logg.Fatalf("migrate error: %v", err)
 	}
@@ -56,9 +58,11 @@ func main() {
 	stockService := stock.NewStockService(stockRepo, nil, cfg.Finnhub.Token)
 	stockController := controllers.NewStockController(stockService)
 	stockQuoteRepo := repository.NewStockQuoteRepository(db)
-	stockQuoteService := stock_quotes.NewStockQuoteService(stockRepo, stockQuoteRepo, nil, cfg.Finnhub.Token)
-	stockMetricRepo := repository.NewStockMetricRepository(db)
-	stockMetricService := stock_metric.NewStockMetricService(stockRepo, stockQuoteRepo, stockMetricRepo)
+	alertEventRepo := repository.NewAlertEventRepository(db)
+	alertEventService := alert_events.NewAlertEventService(stockQuoteRepo, alertEventRepo)
+	stockQuoteService := stock_quotes.NewStockQuoteService(stockRepo, stockQuoteRepo, alertEventService, nil, cfg.Finnhub.Token)
+	stockDailyRepo := repository.NewStockDailyRepository(db)
+	stockDailyService := stock_daily.NewStockDailyService(stockRepo, stockQuoteRepo, stockDailyRepo)
 	relationNewsRepo := repository.NewRelationNewsRepository(db)
 	relationNewsService := relation_news.NewRelationNewsService(relationNewsRepo)
 	companyNewsRepo := repository.NewCompanyNewsRepository(db)
@@ -70,7 +74,7 @@ func main() {
 	authController := controllers.NewAuthController(authService)
 	relationNewsController := controllers.NewRelationNewsController(relationNewsService)
 	marketOpenRepo := repository.NewMarketOpenRepository(db)
-	marketOpenService := market_open.NewMarketOpenService(marketOpenRepo, nil, cfg.Finnhub.Token, stockQuoteService, stockMetricService, logg)
+	marketOpenService := market_open.NewMarketOpenService(marketOpenRepo, nil, cfg.Finnhub.Token, stockQuoteService, stockDailyService, logg)
 	marketOpenService.Start(context.Background())
 	companyNewsService.Start(context.Background())
 
