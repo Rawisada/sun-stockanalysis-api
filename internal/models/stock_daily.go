@@ -12,8 +12,8 @@ type StockDaily struct {
 	PriceLow       float64   `gorm:"not null" json:"price_low"`
 	PriceOpen      float64   `gorm:"not null" json:"price_open"`
 	PricePrevClose float64   `gorm:"not null" json:"price_prev_close"`
-	ChangePrice    float64   `gorm:"not null" json:"change_price"`
-	ChangePercent  float64   `gorm:"not null" json:"change_percent"`
+	ChangePrice   *float64  `gorm:"" json:"change_price"`
+	ChangePercent *float64  `gorm:"" json:"change_percent"`
 	DeltaPrice     float64   `gorm:"column:dalta_price;not null" json:"dalta_price"`
 	EMA20          float64   `gorm:"column:ema_20;not null" json:"ema_20"`
 	EMA100         float64   `gorm:"column:ema_100;not null" json:"ema_100"`

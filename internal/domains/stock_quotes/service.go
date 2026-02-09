@@ -221,18 +221,20 @@ func (s *StockQuoteServiceImpl) fetchAndStoreAll(ctx context.Context) {
 			changeTanhEMA = tanhEMA - prev.TanhEMA
 		}
 		createdAt := time.Now().In(time.FixedZone("Asia/Bangkok", 7*60*60)).Truncate(time.Minute)
+		changePrice := quote.D
+		changePercent := quote.DP
 		if err := s.quoteRepo.Create(&models.StockQuote{
 			Symbol:        symbol,
 			PriceCurrent:  quote.C,
-			ChangePrice:   quote.D,
-			ChangePercent: quote.DP,
+			ChangePrice:   &changePrice,
+			ChangePercent: &changePercent,
 			EMA20:         ema20,
 			EMA100:        ema100,
 			TanhEMA:       tanhEMA,
 			ChangeEMA20:   changeEMA20,
 			ChangeTanhEMA: changeTanhEMA,
 			EMATrend:      emaTrend,
-			CreatedAt:     models.NewLocalTime(createdAt),
+			CreatedAt:     models.NewLocalTime(createdAt.Truncate(time.Minute)),
 		}); err != nil {
 			continue
 		}

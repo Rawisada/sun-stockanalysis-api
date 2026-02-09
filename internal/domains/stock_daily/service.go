@@ -166,6 +166,7 @@ func summarizePrices(quotes []models.StockQuote) (avg float64, high float64, low
 	return avg, high, low
 }
 
+
 func tradeDateFromEnd(end time.Time) models.LocalDate {
 	loc := time.FixedZone("Asia/Bangkok", 7*60*60)
 	endLocal := end.In(loc)

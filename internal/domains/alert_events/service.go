@@ -43,7 +43,7 @@ func (s *AlertEventServiceImpl) BuildForSymbol(ctx context.Context, symbol strin
 
 	start, end := dayBoundsBangkok(time.Now())
 	quotes, err := s.quoteRepo.FindLatestBySymbolBetween(symbol, start, end, 5)
-	if err != nil || len(quotes) == 0 {
+	if err != nil || len(quotes) < 5 {
 		return err
 	}
 
