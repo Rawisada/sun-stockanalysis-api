@@ -122,12 +122,13 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 		}
 
 		session := strings.ToLower(strings.TrimSpace(status.session()))
+		isOpen := status.isOpen()
 		s.logStatus(status)
-		switch session {
-		case "pre-market":
+		switch {
+		case session == "pre-market":
 			sleepContext(ctx, pollInterval)
 			continue
-		case "regular":
+		case session == "regular" && isOpen:
 			_ = s.ensureOpenRecord(status)
 			if s.quoteService != nil && !quoteStarted {
 				s.quoteService.Start(ctx)
@@ -135,7 +136,7 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 			}
 			sleepContext(ctx, pollInterval)
 			continue
-		case "post-market":
+		case session == "post-market" || (session == "regular" && !isOpen):
 			_ = s.updateCloseRecord(status)
 			if s.quoteService != nil && !postHandled {
 				s.quoteService.RunOnce(ctx)
@@ -146,13 +147,14 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 					_ = s.dailyService.BuildForWindow(ctx, start, end)
 				}
 			}
+			sleepContext(ctx, pollInterval)
+			continue
+		default:
 			if shouldStopForDay(time.Now()) {
 				return
 			}
 			sleepContext(ctx, pollInterval)
 			continue
-		default:
-			return
 		}
 	}
 }
@@ -201,6 +203,13 @@ func (r *finnhubMarketStatusResponse) session() string {
 	return *r.Session
 }
 
+func (r *finnhubMarketStatusResponse) isOpen() bool {
+	if r == nil {
+		return false
+	}
+	return r.IsOpen
+}
+
 func (s *MarketOpenServiceImpl) fetchMarketStatus() (*finnhubMarketStatusResponse, error) {
 	req, err := http.NewRequest(http.MethodGet, marketStatusURL, nil)
 	if err != nil {
@@ -228,6 +237,7 @@ func (s *MarketOpenServiceImpl) fetchMarketStatus() (*finnhubMarketStatusRespons
 
 func (s *MarketOpenServiceImpl) ensureOpenRecord(status *finnhubMarketStatusResponse) error {
 	tradeDate, openAt := tradeDateAndTime(status)
+	tradeDate = tradeDateForMarketWindow(openAt)
 	_, err := s.repo.FindByTradeDate(tradeDate)
 	if err == nil {
 		return nil
@@ -246,6 +256,7 @@ func (s *MarketOpenServiceImpl) ensureOpenRecord(status *finnhubMarketStatusResp
 
 func (s *MarketOpenServiceImpl) updateCloseRecord(status *finnhubMarketStatusResponse) error {
 	tradeDate, closeAt := tradeDateAndTime(status)
+	tradeDate = tradeDateForMarketWindow(closeAt)
 	record, err := s.repo.FindByTradeDate(tradeDate)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -274,6 +285,16 @@ func tradeDateAndTime(status *finnhubMarketStatusResponse) (time.Time, time.Time
 	at := time.Unix(timestamp, 0).In(loc)
 	date := time.Date(at.Year(), at.Month(), at.Day(), 0, 0, 0, 0, loc)
 	return date, at
+}
+
+func tradeDateForMarketWindow(at time.Time) time.Time {
+	loc := time.FixedZone("Asia/Bangkok", 7*60*60)
+	t := at.In(loc)
+	date := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, loc)
+	if t.Hour() < 4 {
+		return date.AddDate(0, 0, -1)
+	}
+	return date
 }
 
 func shouldStopForDay(now time.Time) bool {
