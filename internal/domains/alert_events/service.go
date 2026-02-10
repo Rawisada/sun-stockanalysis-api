@@ -2,6 +2,8 @@ package alert_events
 
 import (
 	"context"
+	"log"
+	"strconv"
 	"time"
 
 	"sun-stockanalysis-api/internal/models"
@@ -59,6 +61,7 @@ func (s *AlertEventServiceImpl) BuildForSymbol(ctx context.Context, symbol strin
 	if !ok {
 		return nil
 	}
+	log.Printf("ScoreEMA=%d symbol=%s trendEMA20=%d trendTanhEMA=%d", scoreEMA, symbol, trendEMA20, trendTanhEMA)
 
 	scorePCrossEMA := 0
 	if latest.PriceCurrent == latest.EMA100 {
@@ -72,16 +75,15 @@ func (s *AlertEventServiceImpl) BuildForSymbol(ctx context.Context, symbol strin
 		ScoreEMA:       float64(scoreEMA),
 		ScorePCrossEMA: float64(scorePCrossEMA),
 	}
-	if scoreEMA == 2 || scoreEMA == 1 || scoreEMA == -1 || scoreEMA == -2 {
-		if err := s.eventRepo.Create(event); err != nil {
-			return err
-		}
+	if err := s.eventRepo.Create(event); err != nil {
+		return err
 	}
 	if s.notifier != nil {
 		message := messageForScore(scoreEMA)
-		if message != "" {
-			s.notifier.Notify(event, message)
+		if message == "" {
+			message = "ScoreEMA: " + strconv.Itoa(scoreEMA)
 		}
+		s.notifier.Notify(event, message)
 	}
 	return nil
 }
