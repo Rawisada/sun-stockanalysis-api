@@ -53,10 +53,23 @@ func (s *AlertEventServiceImpl) BuildForSymbol(ctx context.Context, symbol strin
 	for _, q := range quotes {
 		trendEMA20 += signFloat(q.ChangeEMA20)
 	}
-
 	latest := quotes[0]
 	trendTanhEMA := signFloat(latest.ChangeTanhEMA)
-
+	// changeEMA20s := make([]float64, 0, len(quotes))
+	// changeEMA20Signs := make([]int, 0, len(quotes))
+	// for _, q := range quotes {
+	// 	changeEMA20s = append(changeEMA20s, q.ChangeEMA20)
+	// 	changeEMA20Signs = append(changeEMA20Signs, signFloat(q.ChangeEMA20))
+	// }
+	// log.Printf(
+	// 	"Start Alert 1.5 symbol=%s trendEMA20=%d trendTanhEMA=%d changeEMA20=%v changeEMA20Signs=%v latestChangeTanhEMA=%.6f",
+	// 	symbol,
+	// 	trendEMA20,
+	// 	trendTanhEMA,
+	// 	changeEMA20s,
+	// 	changeEMA20Signs,
+	// 	latest.ChangeTanhEMA,
+	// )
 	scoreEMA, ok := scoreFromTrend(trendEMA20, trendTanhEMA)
 	if !ok {
 		return nil
@@ -75,8 +88,10 @@ func (s *AlertEventServiceImpl) BuildForSymbol(ctx context.Context, symbol strin
 		ScoreEMA:       float64(scoreEMA),
 		ScorePCrossEMA: float64(scorePCrossEMA),
 	}
-	if err := s.eventRepo.Create(event); err != nil {
-		return err
+	if scoreEMA >= 3 || scoreEMA <= -3 {
+		if err := s.eventRepo.Create(event); err != nil {
+			return err
+		}
 	}
 	if s.notifier != nil {
 		message := messageForScore(scoreEMA)
@@ -108,15 +123,29 @@ func signFloat(v float64) int {
 }
 
 func scoreFromTrend(trendEMA20, trendTanhEMA int) (int, bool) {
-	switch trendEMA20 {
-	case -2:
+	switch {
+	case trendEMA20 <= -2:
+		switch trendTanhEMA {
+		case -1:
+			return -4, true
+		case 0, 1:
+			return -3, true
+		}
+	case trendEMA20 >= 2:
+		switch trendTanhEMA {
+		case 1:
+			return 4, true
+		case 0, -1:
+			return 3, true
+		}
+	case trendEMA20 == -1:
 		switch trendTanhEMA {
 		case -1:
 			return -2, true
 		case 0, 1:
 			return -1, true
 		}
-	case 2:
+	case trendEMA20 == 1:
 		switch trendTanhEMA {
 		case 1:
 			return 2, true
@@ -128,15 +157,15 @@ func scoreFromTrend(trendEMA20, trendTanhEMA int) (int, bool) {
 }
 
 func messageForScore(scoreEMA int) string {
-	switch scoreEMA {
-	case 1:
-		return "ควรซื้อ/จับตามอง"
-	case 2:
+	switch {
+	case scoreEMA >= 3:
 		return "ต้องซื้อ"
-	case -1:
-		return "ควรขาย/จับตามอง"
-	case -2:
+	case scoreEMA >= 1:
+		return "ควรซื้อ/จับตามอง"
+	case scoreEMA <= -3:
 		return "ต้องขาย"
+	case scoreEMA <= -1:
+		return "ควรขาย/จับตามอง"
 	default:
 		return ""
 	}

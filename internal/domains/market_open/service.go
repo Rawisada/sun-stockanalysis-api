@@ -25,7 +25,7 @@ const (
 	defaultMarketStatusURL = "https://finnhub.io/api/v1/stock/market-status?exchange=US"
 	defaultPollSeconds     = 60
 	defaultStopHour        = 4
-	defaultStopMinute      = 0
+	defaultStopMinute      = 30
 )
 
 var (
@@ -88,8 +88,11 @@ func (s *MarketOpenServiceImpl) Start(ctx context.Context) {
 }
 
 func (s *MarketOpenServiceImpl) runScheduler(ctx context.Context) {
+	// TEMP: run immediately on startup.
+	// s.runDailyPolling(ctx)
+
 	for {
-		wait := nextRunDuration(20, 30, time.Local)
+		wait := nextRunDuration(20, 15, time.Local)
 		timer := time.NewTimer(wait)
 		select {
 		case <-ctx.Done():
@@ -97,7 +100,7 @@ func (s *MarketOpenServiceImpl) runScheduler(ctx context.Context) {
 			return
 		case <-timer.C:
 		}
-
+	
 		s.runDailyPolling(ctx)
 	}
 }
@@ -308,7 +311,7 @@ func metricsWindow(now time.Time) (time.Time, time.Time) {
 	loc := time.FixedZone("Asia/Bangkok", 7*60*60)
 	current := now.In(loc)
 	start := time.Date(current.Year(), current.Month(), current.Day(), 20, 0, 0, 0, loc).Add(-24 * time.Hour)
-	end := time.Date(current.Year(), current.Month(), current.Day(), 4, 0, 0, 0, loc)
+	end := time.Date(current.Year(), current.Month(), current.Day(), 4, 30, 0, 0, loc)
 	return start, end
 }
 

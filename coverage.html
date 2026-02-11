@@ -1019,6 +1019,8 @@ func NewPostgresDatabase(conf *configurations.Database) Database <span class="co
 
 import (
         "context"
+        "log"
+        "strconv"
         "time"
 
         "sun-stockanalysis-api/internal/models"
@@ -1068,16 +1070,30 @@ func (s *AlertEventServiceImpl) BuildForSymbol(ctx context.Context, symbol strin
         for _, q := range quotes </span><span class="cov0" title="0">{
                 trendEMA20 += signFloat(q.ChangeEMA20)
         }</span>
-
         <span class="cov0" title="0">latest := quotes[0]
         trendTanhEMA := signFloat(latest.ChangeTanhEMA)
-
+        // changeEMA20s := make([]float64, 0, len(quotes))
+        // changeEMA20Signs := make([]int, 0, len(quotes))
+        // for _, q := range quotes {
+        //         changeEMA20s = append(changeEMA20s, q.ChangeEMA20)
+        //         changeEMA20Signs = append(changeEMA20Signs, signFloat(q.ChangeEMA20))
+        // }
+        // log.Printf(
+        //         "Start Alert 1.5 symbol=%s trendEMA20=%d trendTanhEMA=%d changeEMA20=%v changeEMA20Signs=%v latestChangeTanhEMA=%.6f",
+        //         symbol,
+        //         trendEMA20,
+        //         trendTanhEMA,
+        //         changeEMA20s,
+        //         changeEMA20Signs,
+        //         latest.ChangeTanhEMA,
+        // )
         scoreEMA, ok := scoreFromTrend(trendEMA20, trendTanhEMA)
         if !ok </span><span class="cov0" title="0">{
                 return nil
         }</span>
+        <span class="cov0" title="0">log.Printf("ScoreEMA=%d symbol=%s trendEMA20=%d trendTanhEMA=%d", scoreEMA, symbol, trendEMA20, trendTanhEMA)
 
-        <span class="cov0" title="0">scorePCrossEMA := 0
+        scorePCrossEMA := 0
         if latest.PriceCurrent == latest.EMA100 </span><span class="cov0" title="0">{
                 scorePCrossEMA = 1
         }</span>
@@ -1089,16 +1105,17 @@ func (s *AlertEventServiceImpl) BuildForSymbol(ctx context.Context, symbol strin
                 ScoreEMA:       float64(scoreEMA),
                 ScorePCrossEMA: float64(scorePCrossEMA),
         }
-        if scoreEMA == 2 || scoreEMA == 1 || scoreEMA == -1 || scoreEMA == -2 </span><span class="cov0" title="0">{
+        if scoreEMA &gt;= 3 || scoreEMA &lt;= -3 </span><span class="cov0" title="0">{
                 if err := s.eventRepo.Create(event); err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
         }
         <span class="cov0" title="0">if s.notifier != nil </span><span class="cov0" title="0">{
                 message := messageForScore(scoreEMA)
-                if message != "" </span><span class="cov0" title="0">{
-                        s.notifier.Notify(event, message)
+                if message == "" </span><span class="cov0" title="0">{
+                        message = "ScoreEMA: " + strconv.Itoa(scoreEMA)
                 }</span>
+                <span class="cov0" title="0">s.notifier.Notify(event, message)</span>
         }
         <span class="cov0" title="0">return nil</span>
 }
@@ -1123,15 +1140,29 @@ func signFloat(v float64) int <span class="cov0" title="0">{
 }
 
 func scoreFromTrend(trendEMA20, trendTanhEMA int) (int, bool) <span class="cov0" title="0">{
-        switch trendEMA20 </span>{
-        case -2:<span class="cov0" title="0">
+        switch </span>{
+        case trendEMA20 &lt;= -2:<span class="cov0" title="0">
+                switch trendTanhEMA </span>{
+                case -1:<span class="cov0" title="0">
+                        return -4, true</span>
+                case 0, 1:<span class="cov0" title="0">
+                        return -3, true</span>
+                }
+        case trendEMA20 &gt;= 2:<span class="cov0" title="0">
+                switch trendTanhEMA </span>{
+                case 1:<span class="cov0" title="0">
+                        return 4, true</span>
+                case 0, -1:<span class="cov0" title="0">
+                        return 3, true</span>
+                }
+        case trendEMA20 == -1:<span class="cov0" title="0">
                 switch trendTanhEMA </span>{
                 case -1:<span class="cov0" title="0">
                         return -2, true</span>
                 case 0, 1:<span class="cov0" title="0">
                         return -1, true</span>
                 }
-        case 2:<span class="cov0" title="0">
+        case trendEMA20 == 1:<span class="cov0" title="0">
                 switch trendTanhEMA </span>{
                 case 1:<span class="cov0" title="0">
                         return 2, true</span>
@@ -1143,15 +1174,15 @@ func scoreFromTrend(trendEMA20, trendTanhEMA int) (int, bool) <span class="cov0"
 }
 
 func messageForScore(scoreEMA int) string <span class="cov0" title="0">{
-        switch scoreEMA </span>{
-        case 1:<span class="cov0" title="0">
-                return "ควรซื้อ/จับตามอง"</span>
-        case 2:<span class="cov0" title="0">
+        switch </span>{
+        case scoreEMA &gt;= 3:<span class="cov0" title="0">
                 return "ต้องซื้อ"</span>
-        case -1:<span class="cov0" title="0">
-                return "ควรขาย/จับตามอง"</span>
-        case -2:<span class="cov0" title="0">
+        case scoreEMA &gt;= 1:<span class="cov0" title="0">
+                return "ควรซื้อ/จับตามอง"</span>
+        case scoreEMA &lt;= -3:<span class="cov0" title="0">
                 return "ต้องขาย"</span>
+        case scoreEMA &lt;= -1:<span class="cov0" title="0">
+                return "ควรขาย/จับตามอง"</span>
         default:<span class="cov0" title="0">
                 return ""</span>
         }
@@ -1712,7 +1743,7 @@ const (
         defaultMarketStatusURL = "https://finnhub.io/api/v1/stock/market-status?exchange=US"
         defaultPollSeconds     = 60
         defaultStopHour        = 4
-        defaultStopMinute      = 0
+        defaultStopMinute      = 30
 )
 
 var (
@@ -1775,8 +1806,11 @@ func (s *MarketOpenServiceImpl) Start(ctx context.Context) <span class="cov0" ti
 }</span>
 
 func (s *MarketOpenServiceImpl) runScheduler(ctx context.Context) <span class="cov0" title="0">{
+        // TEMP: run immediately on startup.
+        // s.runDailyPolling(ctx)
+
         for </span><span class="cov0" title="0">{
-                wait := nextRunDuration(20, 30, time.Local)
+                wait := nextRunDuration(20, 15, time.Local)
                 timer := time.NewTimer(wait)
                 select </span>{
                 case &lt;-ctx.Done():<span class="cov0" title="0">
@@ -1784,7 +1818,7 @@ func (s *MarketOpenServiceImpl) runScheduler(ctx context.Context) <span class="c
                         return</span>
                 case &lt;-timer.C:<span class="cov0" title="0"></span>
                 }
-
+        
                 <span class="cov0" title="0">s.runDailyPolling(ctx)</span>
         }
 }
@@ -1809,12 +1843,13 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) <span class
                 }</span>
 
                 <span class="cov0" title="0">session := strings.ToLower(strings.TrimSpace(status.session()))
+                isOpen := status.isOpen()
                 s.logStatus(status)
-                switch session </span>{
-                case "pre-market":<span class="cov0" title="0">
+                switch </span>{
+                case session == "pre-market":<span class="cov0" title="0">
                         sleepContext(ctx, pollInterval)
                         continue</span>
-                case "regular":<span class="cov0" title="0">
+                case session == "regular" &amp;&amp; isOpen:<span class="cov0" title="0">
                         _ = s.ensureOpenRecord(status)
                         if s.quoteService != nil &amp;&amp; !quoteStarted </span><span class="cov0" title="0">{
                                 s.quoteService.Start(ctx)
@@ -1822,7 +1857,7 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) <span class
                         }</span>
                         <span class="cov0" title="0">sleepContext(ctx, pollInterval)
                         continue</span>
-                case "post-market":<span class="cov0" title="0">
+                case session == "post-market" || (session == "regular" &amp;&amp; !isOpen):<span class="cov0" title="0">
                         _ = s.updateCloseRecord(status)
                         if s.quoteService != nil &amp;&amp; !postHandled </span><span class="cov0" title="0">{
                                 s.quoteService.RunOnce(ctx)
@@ -1833,13 +1868,14 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) <span class
                                         _ = s.dailyService.BuildForWindow(ctx, start, end)
                                 }</span>
                         }
-                        <span class="cov0" title="0">if shouldStopForDay(time.Now()) </span><span class="cov0" title="0">{
+                        <span class="cov0" title="0">sleepContext(ctx, pollInterval)
+                        continue</span>
+                default:<span class="cov0" title="0">
+                        if shouldStopForDay(time.Now()) </span><span class="cov0" title="0">{
                                 return
                         }</span>
                         <span class="cov0" title="0">sleepContext(ctx, pollInterval)
                         continue</span>
-                default:<span class="cov0" title="0">
-                        return</span>
                 }
         }
 }
@@ -1888,6 +1924,13 @@ func (r *finnhubMarketStatusResponse) session() string <span class="cov0" title=
         <span class="cov0" title="0">return *r.Session</span>
 }
 
+func (r *finnhubMarketStatusResponse) isOpen() bool <span class="cov0" title="0">{
+        if r == nil </span><span class="cov0" title="0">{
+                return false
+        }</span>
+        <span class="cov0" title="0">return r.IsOpen</span>
+}
+
 func (s *MarketOpenServiceImpl) fetchMarketStatus() (*finnhubMarketStatusResponse, error) <span class="cov0" title="0">{
         req, err := http.NewRequest(http.MethodGet, marketStatusURL, nil)
         if err != nil </span><span class="cov0" title="0">{
@@ -1915,6 +1958,7 @@ func (s *MarketOpenServiceImpl) fetchMarketStatus() (*finnhubMarketStatusRespons
 
 func (s *MarketOpenServiceImpl) ensureOpenRecord(status *finnhubMarketStatusResponse) error <span class="cov0" title="0">{
         tradeDate, openAt := tradeDateAndTime(status)
+        tradeDate = tradeDateForMarketWindow(openAt)
         _, err := s.repo.FindByTradeDate(tradeDate)
         if err == nil </span><span class="cov0" title="0">{
                 return nil
@@ -1933,6 +1977,7 @@ func (s *MarketOpenServiceImpl) ensureOpenRecord(status *finnhubMarketStatusResp
 
 func (s *MarketOpenServiceImpl) updateCloseRecord(status *finnhubMarketStatusResponse) error <span class="cov0" title="0">{
         tradeDate, closeAt := tradeDateAndTime(status)
+        tradeDate = tradeDateForMarketWindow(closeAt)
         record, err := s.repo.FindByTradeDate(tradeDate)
         if err != nil </span><span class="cov0" title="0">{
                 if errors.Is(err, gorm.ErrRecordNotFound) </span><span class="cov0" title="0">{
@@ -1963,6 +2008,16 @@ func tradeDateAndTime(status *finnhubMarketStatusResponse) (time.Time, time.Time
         return date, at</span>
 }
 
+func tradeDateForMarketWindow(at time.Time) time.Time <span class="cov0" title="0">{
+        loc := time.FixedZone("Asia/Bangkok", 7*60*60)
+        t := at.In(loc)
+        date := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, loc)
+        if t.Hour() &lt; 4 </span><span class="cov0" title="0">{
+                return date.AddDate(0, 0, -1)
+        }</span>
+        <span class="cov0" title="0">return date</span>
+}
+
 func shouldStopForDay(now time.Time) bool <span class="cov0" title="0">{
         loc := time.FixedZone("Asia/Bangkok", 7*60*60)
         current := now.In(loc)
@@ -1974,7 +2029,7 @@ func metricsWindow(now time.Time) (time.Time, time.Time) <span class="cov0" titl
         loc := time.FixedZone("Asia/Bangkok", 7*60*60)
         current := now.In(loc)
         start := time.Date(current.Year(), current.Month(), current.Day(), 20, 0, 0, 0, loc).Add(-24 * time.Hour)
-        end := time.Date(current.Year(), current.Month(), current.Day(), 4, 0, 0, 0, loc)
+        end := time.Date(current.Year(), current.Month(), current.Day(), 4, 30, 0, 0, loc)
         return start, end
 }</span>
 
