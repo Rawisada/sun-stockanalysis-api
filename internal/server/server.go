@@ -25,7 +25,13 @@ type Server struct {
 	log *logger.Logger
 }
 
-func NewServer(cfg *configurations.Config, controllers *controllers.Controllers, alertHub *realtime.AlertHub, log *logger.Logger) *Server {
+func NewServer(
+	cfg *configurations.Config,
+	controllers *controllers.Controllers,
+	alertHub *realtime.AlertHub,
+	stockQuoteHub *realtime.StockQuoteHub,
+	log *logger.Logger,
+) *Server {
 	app := fiber.New(fiber.Config{
 		AppName: "sun-stockanalysis-api",
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -43,7 +49,8 @@ func NewServer(cfg *configurations.Config, controllers *controllers.Controllers,
 			path == contextPath+"/openapi.json" ||
 			path == contextPath+"/openapi.yaml" ||
 			path == contextPath+"/schemas" ||
-			path == contextPath+"/alerts/ws" {
+			path == contextPath+"/alerts/ws" ||
+			path == contextPath+"/stock-quotes/ws" {
 			return c.Next()
 		}
 
@@ -101,6 +108,18 @@ func NewServer(cfg *configurations.Config, controllers *controllers.Controllers,
 		apiGroup.Get("/alerts/ws", websocket.New(func(c *websocket.Conn) {
 			alertHub.Register(c)
 			defer alertHub.Unregister(c)
+
+			for {
+				if _, _, err := c.ReadMessage(); err != nil {
+					break
+				}
+			}
+		}))
+	}
+	if stockQuoteHub != nil {
+		apiGroup.Get("/stock-quotes/ws", websocket.New(func(c *websocket.Conn) {
+			stockQuoteHub.Register(c)
+			defer stockQuoteHub.Unregister(c)
 
 			for {
 				if _, _, err := c.ReadMessage(); err != nil {

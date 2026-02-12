@@ -11,8 +11,8 @@ import (
 	"sun-stockanalysis-api/internal/configurations"
 	"sun-stockanalysis-api/internal/controllers"
 	"sun-stockanalysis-api/internal/database"
-	"sun-stockanalysis-api/internal/domains/auth"
 	"sun-stockanalysis-api/internal/domains/alert_events"
+	"sun-stockanalysis-api/internal/domains/auth"
 	"sun-stockanalysis-api/internal/domains/cleanup"
 	"sun-stockanalysis-api/internal/domains/company_news"
 	"sun-stockanalysis-api/internal/domains/market_open"
@@ -21,8 +21,8 @@ import (
 	"sun-stockanalysis-api/internal/domains/stock_daily"
 	"sun-stockanalysis-api/internal/domains/stock_quotes"
 	"sun-stockanalysis-api/internal/models"
-	"sun-stockanalysis-api/internal/repository"
 	"sun-stockanalysis-api/internal/realtime"
+	"sun-stockanalysis-api/internal/repository"
 	"sun-stockanalysis-api/internal/server"
 	"sun-stockanalysis-api/pkg/logger"
 )
@@ -62,8 +62,9 @@ func main() {
 	stockQuoteRepo := repository.NewStockQuoteRepository(db)
 	alertEventRepo := repository.NewAlertEventRepository(db)
 	alertHub := realtime.NewAlertHub()
+	stockQuoteHub := realtime.NewStockQuoteHub()
 	alertEventService := alert_events.NewAlertEventService(stockQuoteRepo, alertEventRepo, alertHub)
-	stockQuoteService := stock_quotes.NewStockQuoteService(stockRepo, stockQuoteRepo, alertEventService, nil, cfg.Finnhub.Token)
+	stockQuoteService := stock_quotes.NewStockQuoteService(stockRepo, stockQuoteRepo, alertEventService, stockQuoteHub, nil, cfg.Finnhub.Token)
 	stockQuoteController := controllers.NewStockQuoteController(stockQuoteService)
 	stockDailyRepo := repository.NewStockDailyRepository(db)
 	stockDailyService := stock_daily.NewStockDailyService(stockRepo, stockQuoteRepo, stockDailyRepo)
@@ -90,7 +91,7 @@ func main() {
 	appControllers := controllers.NewControllers(healthController, stockController, stockQuoteController, stockDailyController, companyNewsController, authController, relationNewsController)
 
 	// Fiber server
-	srv := server.NewServer(cfg, appControllers, alertHub, logg)
+	srv := server.NewServer(cfg, appControllers, alertHub, stockQuoteHub, logg)
 
 	go func() {
 		logg.Infof("server starting on :%d", cfg.Server.Port)

@@ -19,6 +19,7 @@ import (
 
 	"sun-stockanalysis-api/internal/domains/alert_events"
 	"sun-stockanalysis-api/internal/models"
+	"sun-stockanalysis-api/internal/realtime"
 	"sun-stockanalysis-api/internal/repository"
 )
 
@@ -53,6 +54,7 @@ type StockQuoteServiceImpl struct {
 	stockRepo     repository.StockRepository
 	quoteRepo     repository.StockQuoteRepository
 	alertService  alert_events.AlertEventService
+	notifier      realtime.StockQuoteNotifier
 	httpClient    HTTPClient
 	finnhubToken  string
 	pollInterval  time.Duration
@@ -65,6 +67,7 @@ func NewStockQuoteService(
 	stockRepo repository.StockRepository,
 	quoteRepo repository.StockQuoteRepository,
 	alertService alert_events.AlertEventService,
+	notifier realtime.StockQuoteNotifier,
 	httpClient HTTPClient,
 	finnhubToken string,
 ) StockQuoteService {
@@ -75,6 +78,7 @@ func NewStockQuoteService(
 		stockRepo:     stockRepo,
 		quoteRepo:     quoteRepo,
 		alertService:  alertService,
+		notifier:      notifier,
 		httpClient:    httpClient,
 		finnhubToken:  finnhubToken,
 		pollInterval:  quotePoll,
@@ -223,7 +227,7 @@ func (s *StockQuoteServiceImpl) fetchAndStoreAll(ctx context.Context) {
 		createdAt := time.Now().In(time.FixedZone("Asia/Bangkok", 7*60*60)).Truncate(time.Minute)
 		changePrice := quote.D
 		changePercent := quote.DP
-		if err := s.quoteRepo.Create(&models.StockQuote{
+		newQuote := &models.StockQuote{
 			Symbol:        symbol,
 			PriceCurrent:  quote.C,
 			ChangePrice:   &changePrice,
@@ -235,8 +239,12 @@ func (s *StockQuoteServiceImpl) fetchAndStoreAll(ctx context.Context) {
 			ChangeTanhEMA: changeTanhEMA,
 			EMATrend:      emaTrend,
 			CreatedAt:     models.NewLocalTime(createdAt.Truncate(time.Minute)),
-		}); err != nil {
+		}
+		if err := s.quoteRepo.Create(newQuote); err != nil {
 			continue
+		}
+		if s.notifier != nil {
+			s.notifier.NotifyQuote(newQuote)
 		}
 		if s.alertService != nil {
 			_ = s.alertService.BuildForSymbol(ctx, symbol)
