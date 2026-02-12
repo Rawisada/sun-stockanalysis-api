@@ -89,20 +89,20 @@ func (s *MarketOpenServiceImpl) Start(ctx context.Context) {
 
 func (s *MarketOpenServiceImpl) runScheduler(ctx context.Context) {
 	// TEMP: run immediately on startup.
-	s.runDailyPolling(ctx)
+	// s.runDailyPolling(ctx)
 
-	// for {
-	// 	wait := nextRunDuration(20, 45, time.Local)
-	// 	timer := time.NewTimer(wait)
-	// 	select {
-	// 	case <-ctx.Done():
-	// 		timer.Stop()
-	// 		return
-	// 	case <-timer.C:
-	// 	}
+	for {
+		wait := nextRunDuration(20, 25, time.Local)
+		timer := time.NewTimer(wait)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return
+		case <-timer.C:
+		}
 	
-	// 	s.runDailyPolling(ctx)
-	// }
+		s.runDailyPolling(ctx)
+	}
 }
 
 func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
