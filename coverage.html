@@ -1810,21 +1810,21 @@ func (s *MarketOpenServiceImpl) Start(ctx context.Context) <span class="cov0" ti
 
 func (s *MarketOpenServiceImpl) runScheduler(ctx context.Context) <span class="cov0" title="0">{
         // TEMP: run immediately on startup.
-        s.runDailyPolling(ctx)
+        // s.runDailyPolling(ctx)
 
-        // for {
-        //         wait := nextRunDuration(20, 45, time.Local)
-        //         timer := time.NewTimer(wait)
-        //         select {
-        //         case &lt;-ctx.Done():
-        //                 timer.Stop()
-        //                 return
-        //         case &lt;-timer.C:
-        //         }
+        for </span><span class="cov0" title="0">{
+                wait := nextRunDuration(20, 25, time.Local)
+                timer := time.NewTimer(wait)
+                select </span>{
+                case &lt;-ctx.Done():<span class="cov0" title="0">
+                        timer.Stop()
+                        return</span>
+                case &lt;-timer.C:<span class="cov0" title="0"></span>
+                }
         
-        //         s.runDailyPolling(ctx)
-        // }
-}</span>
+                <span class="cov0" title="0">s.runDailyPolling(ctx)</span>
+        }
+}
 
 func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) <span class="cov0" title="0">{
         quoteStarted := false
