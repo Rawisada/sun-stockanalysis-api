@@ -82,7 +82,7 @@ func main() {
 	relationNewsController := controllers.NewRelationNewsController(relationNewsService)
 	marketOpenRepo := repository.NewMarketOpenRepository(db)
 	marketOpenService := market_open.NewMarketOpenService(marketOpenRepo, nil, cfg.Finnhub.Token, stockQuoteService, stockDailyService, logg)
-	cleanupService := cleanup.NewCleanupService(stockQuoteRepo, companyNewsRepo, 15)
+	cleanupService := cleanup.NewCleanupService(stockQuoteRepo, companyNewsRepo, alertEventRepo, marketOpenRepo, refreshTokenRepo, 15, 7, 7, 30)
 	marketOpenService.Start(context.Background())
 	companyNewsService.Start(context.Background())
 	cleanupService.Start(context.Background())

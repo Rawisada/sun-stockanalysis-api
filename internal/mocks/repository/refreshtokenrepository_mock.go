@@ -3,6 +3,8 @@
 package repository_mock
 
 import (
+	"time"
+
 	models "sun-stockanalysis-api/internal/models"
 
 	mock "github.com/stretchr/testify/mock"
@@ -123,6 +125,24 @@ func (_c *MockRefreshTokenRepository_FindByHash_Call) Return(_a0 *models.Refresh
 func (_c *MockRefreshTokenRepository_FindByHash_Call) RunAndReturn(run func(string) (*models.RefreshTokens, error)) *MockRefreshTokenRepository_FindByHash_Call {
 	_c.Call.Return(run)
 	return _c
+}
+
+// DeleteBefore provides a mock function with given fields: t
+func (_m *MockRefreshTokenRepository) DeleteBefore(t time.Time) error {
+	ret := _m.Called(t)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteBefore")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(time.Time) error); ok {
+		r0 = rf(t)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // RevokeByHash provides a mock function with given fields: hash, revokedAt

@@ -12,23 +12,50 @@ type CleanupService interface {
 }
 
 type CleanupServiceImpl struct {
-	quoteRepo   repository.StockQuoteRepository
-	companyRepo repository.CompanyNewsRepository
-	retainDays  int
+	quoteRepo              repository.StockQuoteRepository
+	companyRepo            repository.CompanyNewsRepository
+	alertEventRepo         repository.AlertEventRepository
+	marketOpenRepo         repository.MarketOpenRepository
+	refreshTokenRepo       repository.RefreshTokenRepository
+	retainDays             int
+	alertRetainDays        int
+	marketOpenRetainDays   int
+	refreshTokenRetainDays int
 }
 
 func NewCleanupService(
 	quoteRepo repository.StockQuoteRepository,
 	companyRepo repository.CompanyNewsRepository,
+	alertEventRepo repository.AlertEventRepository,
+	marketOpenRepo repository.MarketOpenRepository,
+	refreshTokenRepo repository.RefreshTokenRepository,
 	retainDays int,
+	alertRetainDays int,
+	marketOpenRetainDays int,
+	refreshTokenRetainDays int,
 ) CleanupService {
 	if retainDays <= 0 {
 		retainDays = 15
 	}
+	if alertRetainDays <= 0 {
+		alertRetainDays = 7
+	}
+	if marketOpenRetainDays <= 0 {
+		marketOpenRetainDays = 7
+	}
+	if refreshTokenRetainDays <= 0 {
+		refreshTokenRetainDays = 30
+	}
 	return &CleanupServiceImpl{
-		quoteRepo:   quoteRepo,
-		companyRepo: companyRepo,
-		retainDays:  retainDays,
+		quoteRepo:              quoteRepo,
+		companyRepo:            companyRepo,
+		alertEventRepo:         alertEventRepo,
+		marketOpenRepo:         marketOpenRepo,
+		refreshTokenRepo:       refreshTokenRepo,
+		retainDays:             retainDays,
+		alertRetainDays:        alertRetainDays,
+		marketOpenRetainDays:   marketOpenRetainDays,
+		refreshTokenRetainDays: refreshTokenRetainDays,
 	}
 }
 
@@ -60,12 +87,27 @@ func (s *CleanupServiceImpl) runOnce(ctx context.Context) {
 	now := time.Now().In(loc)
 	cutoffDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc).
 		AddDate(0, 0, -s.retainDays)
+	alertEventCutoffDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc).
+		AddDate(0, 0, -s.alertRetainDays)
+	marketOpenCutoffDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc).
+		AddDate(0, 0, -s.marketOpenRetainDays)
+	refreshTokenCutoffDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc).
+		AddDate(0, 0, -s.refreshTokenRetainDays)
 
 	if s.quoteRepo != nil {
 		_ = s.quoteRepo.DeleteBefore(cutoffDate)
 	}
 	if s.companyRepo != nil {
 		_ = s.companyRepo.DeleteBefore(cutoffDate)
+	}
+	if s.alertEventRepo != nil {
+		_ = s.alertEventRepo.DeleteBefore(alertEventCutoffDate)
+	}
+	if s.marketOpenRepo != nil {
+		_ = s.marketOpenRepo.DeleteBefore(marketOpenCutoffDate)
+	}
+	if s.refreshTokenRepo != nil {
+		_ = s.refreshTokenRepo.DeleteBefore(refreshTokenCutoffDate)
 	}
 }
 

@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 
 	"sun-stockanalysis-api/internal/models"
@@ -10,6 +12,7 @@ type RefreshTokenRepository interface {
 	Create(token *models.RefreshTokens) error
 	FindByHash(hash string) (*models.RefreshTokens, error)
 	RevokeByHash(hash string, revokedAt float64) error
+	DeleteBefore(t time.Time) error
 }
 
 type RefreshTokenRepositoryImpl struct {
@@ -36,4 +39,10 @@ func (r *RefreshTokenRepositoryImpl) RevokeByHash(hash string, revokedAt float64
 	return r.db.Model(&models.RefreshTokens{}).
 		Where("token_hash = ?", hash).
 		Update("revoked_at", revokedAt).Error
+}
+
+func (r *RefreshTokenRepositoryImpl) DeleteBefore(t time.Time) error {
+	return r.db.
+		Where("created_at < ?", t).
+		Delete(&models.RefreshTokens{}).Error
 }

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -10,6 +11,7 @@ import (
 
 type AlertEventRepository interface {
 	Create(event *models.AlertEvent) error
+	DeleteBefore(t time.Time) error
 }
 
 type AlertEventRepositoryImpl struct {
@@ -25,4 +27,10 @@ func (r *AlertEventRepositoryImpl) Create(event *models.AlertEvent) error {
 		return errors.New("alert event is nil")
 	}
 	return r.db.Create(event).Error
+}
+
+func (r *AlertEventRepositoryImpl) DeleteBefore(t time.Time) error {
+	return r.db.
+		Where("created_at < ?", t).
+		Delete(&models.AlertEvent{}).Error
 }

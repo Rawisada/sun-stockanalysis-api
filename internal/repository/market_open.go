@@ -14,6 +14,7 @@ type MarketOpenRepository interface {
 	FindByTradeDate(tradeDate time.Time) (*models.MarketOpen, error)
 	Create(record *models.MarketOpen) error
 	UpdateCloseAt(id uuid.UUID, closeAt time.Time, isTradingDay bool) error
+	DeleteBefore(t time.Time) error
 }
 
 type MarketOpenRepositoryImpl struct {
@@ -46,4 +47,10 @@ func (r *MarketOpenRepositoryImpl) UpdateCloseAt(id uuid.UUID, closeAt time.Time
 			"close_at":       closeAt,
 			"is_trading_day": isTradingDay,
 		}).Error
+}
+
+func (r *MarketOpenRepositoryImpl) DeleteBefore(t time.Time) error {
+	return r.db.
+		Where("created_at < ?", t).
+		Delete(&models.MarketOpen{}).Error
 }
