@@ -9,6 +9,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humafiber"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/websocket/v2"
 
 	"sun-stockanalysis-api/internal/configurations"
@@ -41,9 +42,20 @@ func NewServer(
 	})
 
 	contextPath := normalizeContextPath(cfg.Server.ContextPath)
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     strings.Join(cfg.Server.AllowedOrigins, ","),
+		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization,X-Correlation-Id",
+		ExposeHeaders:    "X-Correlation-Id",
+		AllowCredentials: true,
+	}))
 	apiGroup := app.Group(contextPath)
 
 	apiGroup.Use(func(c *fiber.Ctx) error {
+		if c.Method() == fiber.MethodOptions {
+			return c.SendStatus(fiber.StatusNoContent)
+		}
+
 		path := c.Path()
 		if path == contextPath+"/docs" ||
 			path == contextPath+"/openapi.json" ||
