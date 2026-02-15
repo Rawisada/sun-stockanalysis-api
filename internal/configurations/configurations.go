@@ -1,6 +1,8 @@
 package configurations
 
 import (
+	"bytes"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -80,7 +82,7 @@ var (
 
 func ConfigGetting() *Config {
 	once.Do(func() {
-		_ = godotenv.Load()
+		loadDotEnv()
 
 		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		viper.AutomaticEnv()
@@ -90,16 +92,51 @@ func ConfigGetting() *Config {
 			raw := strings.TrimSpace(viper.GetString("server.allowOrigins"))
 			if raw != "" {
 				parts := strings.Split(raw, ",")
+				cleaned := make([]string, 0, len(parts))
 				for i := range parts {
 					parts[i] = strings.TrimSpace(parts[i])
+					if parts[i] != "" {
+						cleaned = append(cleaned, parts[i])
+					}
 				}
-				viper.Set("server.allowOrigins", parts)
+				if len(cleaned) > 0 {
+					viper.Set("server.allowOrigins", cleaned)
+				}
 			}
 		}
 
-		var cfg Config
-		if err := viper.Unmarshal(&cfg); err != nil {
-			panic(err)
+		cfg := Config{
+			Server: &Server{
+				Host:           viper.GetString("server.host"),
+				Port:           viper.GetInt("server.port"),
+				ContextPath:    viper.GetString("server.contextPath"),
+				AllowedOrigins: viper.GetStringSlice("server.allowOrigins"),
+				BodyLimit:      viper.GetString("server.bodyLimit"),
+				TimeOut:        viper.GetDuration("server.timeout"),
+			},
+			State: &State{
+				Secret:     viper.GetString("state.secret"),
+				ExpiredsAt: viper.GetDuration("state.expiredsAt"),
+				Issuer:     viper.GetString("state.issuer"),
+			},
+			Database: &Database{
+				Host:     viper.GetString("database.host"),
+				Port:     viper.GetInt("database.port"),
+				User:     viper.GetString("database.user"),
+				Password: viper.GetString("database.password"),
+				DBname:   viper.GetString("database.dbname"),
+				SSLmode:  viper.GetString("database.sslmode"),
+				Schema:   viper.GetString("database.schema"),
+			},
+			Finnhub: &Finnhub{
+				Token: viper.GetString("finnhub.token"),
+			},
+			Push: &Push{
+				Subject:         viper.GetString("push.subject"),
+				TriggerScore:    viper.GetInt("push.triggerScore"),
+				VAPIDPublicKey:  viper.GetString("push.vapidPublicKey"),
+				VAPIDPrivateKey: viper.GetString("push.vapidPrivateKey"),
+			},
 		}
 
 		if err := validator.New().Struct(&cfg); err != nil {
@@ -110,6 +147,39 @@ func ConfigGetting() *Config {
 	})
 
 	return configInstance
+}
+
+func loadDotEnv() {
+	paths := []string{
+		".env",
+		"../.env",
+		"../../.env",
+		".env.prod",
+		"../.env.prod",
+		"../../.env.prod",
+	}
+
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+
+		// Some Windows editors save UTF-8 files with BOM; trim it for dotenv parsing.
+		data = bytes.TrimPrefix(data, []byte{0xEF, 0xBB, 0xBF})
+
+		envMap, err := godotenv.Unmarshal(string(data))
+		if err != nil {
+			continue
+		}
+
+		for key, value := range envMap {
+			if _, exists := os.LookupEnv(key); !exists {
+				_ = os.Setenv(key, value)
+			}
+		}
+		return
+	}
 }
 
 func bindEnvKeys() {
