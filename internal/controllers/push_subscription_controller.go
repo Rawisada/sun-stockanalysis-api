@@ -41,6 +41,19 @@ type PushSubscriptionUpsertResponse struct {
 	Body   response.ApiResponse[PushSubscriptionUpsertResponseBody]
 }
 
+type PushSubscriptionDeleteInput struct {
+	DeviceID string `query:"device_id" doc:"Device identifier to unsubscribe"`
+}
+
+type PushSubscriptionDeleteResponseBody struct {
+	Deleted bool `json:"deleted"`
+}
+
+type PushSubscriptionDeleteResponse struct {
+	Status int `status:"default"`
+	Body   response.ApiResponse[PushSubscriptionDeleteResponseBody]
+}
+
 type VAPIDPublicKeyResponseBody struct {
 	PublicKey string `json:"public_key"`
 }
@@ -92,6 +105,27 @@ func (c *PushSubscriptionController) GetVAPIDPublicKey(ctx context.Context, _ *E
 		Status: http.StatusOK,
 		Body: response.Success(VAPIDPublicKeyResponseBody{
 			PublicKey: publicKey,
+		}),
+	}, nil
+}
+
+func (c *PushSubscriptionController) Delete(ctx context.Context, input *PushSubscriptionDeleteInput) (*PushSubscriptionDeleteResponse, error) {
+	userID, ok := authctx.UserIDFromContext(ctx)
+	if !ok {
+		return nil, apierror.NewUnauthorized("invalid token context")
+	}
+	if input == nil || input.DeviceID == "" {
+		return nil, apierror.NewBadRequest("device_id required")
+	}
+
+	if err := c.service.Delete(ctx, userID, input.DeviceID); err != nil {
+		return nil, apierror.NewBadRequest(err.Error())
+	}
+
+	return &PushSubscriptionDeleteResponse{
+		Status: http.StatusOK,
+		Body: response.Success(PushSubscriptionDeleteResponseBody{
+			Deleted: true,
 		}),
 	}, nil
 }

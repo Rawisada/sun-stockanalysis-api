@@ -28,6 +28,7 @@ type SaveSubscriptionInput struct {
 type PushSubscriptionService interface {
 	GetPublicKey(ctx context.Context) (string, error)
 	Save(ctx context.Context, userID string, input SaveSubscriptionInput) error
+	Delete(ctx context.Context, userID, deviceID string) error
 	Notify(event *models.AlertEvent, message string)
 	StartSimulation(ctx context.Context)
 }
@@ -123,6 +124,26 @@ func (s *PushSubscriptionServiceImpl) Save(ctx context.Context, userID string, i
 		UserAgent: strings.TrimSpace(input.UserAgent),
 		IsActive:  true,
 	})
+}
+
+func (s *PushSubscriptionServiceImpl) Delete(ctx context.Context, userID, deviceID string) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	if strings.TrimSpace(userID) == "" {
+		return errors.New("user id is required")
+	}
+	if strings.TrimSpace(deviceID) == "" {
+		return errors.New("device_id is required")
+	}
+
+	userUUID, err := uuid.Parse(strings.TrimSpace(userID))
+	if err != nil {
+		return errors.New("invalid user id")
+	}
+	return s.subRepo.DeleteByUserAndDevice(userUUID, strings.TrimSpace(deviceID))
 }
 
 func (s *PushSubscriptionServiceImpl) Notify(event *models.AlertEvent, message string) {

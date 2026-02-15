@@ -25,4 +25,11 @@ func RegisterPushSubscriptionRoutes(api huma.API, controllers *controllers.Contr
 		Summary: "Create or update push subscription",
 		Tags:    v1Tags(),
 	}, controllers.PushSubscriptionController.Upsert)
+
+	huma.Register(protected, huma.Operation{
+		Method:  http.MethodDelete,
+		Path:    "/push/subscriptions",
+		Summary: "Delete push subscription by device_id",
+		Tags:    v1Tags(),
+	}, controllers.PushSubscriptionController.Delete)
 }

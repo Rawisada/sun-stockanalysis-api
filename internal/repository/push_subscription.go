@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -13,6 +14,7 @@ type PushSubscriptionRepository interface {
 	Upsert(subscription *models.PushSubscription) error
 	ListActive() ([]models.PushSubscription, error)
 	DeleteByEndpoint(endpoint string) error
+	DeleteByUserAndDevice(userID uuid.UUID, deviceID string) error
 }
 
 type PushSubscriptionRepositoryImpl struct {
@@ -59,5 +61,14 @@ func (r *PushSubscriptionRepositoryImpl) DeleteByEndpoint(endpoint string) error
 	}
 	return r.db.
 		Where("endpoint = ?", endpoint).
+		Delete(&models.PushSubscription{}).Error
+}
+
+func (r *PushSubscriptionRepositoryImpl) DeleteByUserAndDevice(userID uuid.UUID, deviceID string) error {
+	if userID == uuid.Nil || deviceID == "" {
+		return nil
+	}
+	return r.db.
+		Where("user_id = ? AND device_id = ?", userID, deviceID).
 		Delete(&models.PushSubscription{}).Error
 }
