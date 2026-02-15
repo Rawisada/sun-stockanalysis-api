@@ -92,13 +92,13 @@ func (s *AlertEventServiceImpl) BuildForSymbol(ctx context.Context, symbol strin
 		if err := s.eventRepo.Create(event); err != nil {
 			return err
 		}
-	}
-	if s.notifier != nil {
-		message := messageForScore(scoreEMA)
-		if message == "" {
-			message = "ScoreEMA: " + strconv.Itoa(scoreEMA)
+		if s.notifier != nil {
+			message := messageForScore(scoreEMA)
+			if message == "" {
+				message = "ScoreEMA: " + strconv.Itoa(scoreEMA)
+			}
+			s.notifier.Notify(event, message)
 		}
-		s.notifier.Notify(event, message)
 	}
 	return nil
 }

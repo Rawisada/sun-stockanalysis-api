@@ -10,13 +10,10 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/golang-jwt/jwt/v5"
 
+	"sun-stockanalysis-api/internal/authctx"
 	"sun-stockanalysis-api/pkg/response"
 	"sun-stockanalysis-api/pkg/status"
 )
-
-type authContextKey struct{}
-
-var userIDContextKey authContextKey
 
 func authMiddleware(secret, issuer string) func(ctx huma.Context, next func(huma.Context)) {
 	return func(ctx huma.Context, next func(huma.Context)) {
@@ -69,7 +66,7 @@ func authMiddleware(secret, issuer string) func(ctx huma.Context, next func(huma
 			return
 		}
 
-		next(huma.WithValue(ctx, userIDContextKey, claims.Subject))
+		next(huma.WithValue(ctx, authctx.UserIDContextKey(), claims.Subject))
 	}
 }
 

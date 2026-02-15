@@ -16,6 +16,7 @@ import (
 	"sun-stockanalysis-api/internal/domains/cleanup"
 	"sun-stockanalysis-api/internal/domains/company_news"
 	"sun-stockanalysis-api/internal/domains/market_open"
+	"sun-stockanalysis-api/internal/domains/push_subscriptions"
 	"sun-stockanalysis-api/internal/domains/relation_news"
 	"sun-stockanalysis-api/internal/domains/stock"
 	"sun-stockanalysis-api/internal/domains/stock_daily"
@@ -51,6 +52,7 @@ func main() {
 		&models.RelationNews{},
 		&models.CompanyNews{},
 		&models.AlertEvent{},
+		&models.PushSubscription{},
 	); err != nil {
 		logg.Fatalf("migrate error: %v", err)
 	}
@@ -61,9 +63,15 @@ func main() {
 	stockController := controllers.NewStockController(stockService)
 	stockQuoteRepo := repository.NewStockQuoteRepository(db)
 	alertEventRepo := repository.NewAlertEventRepository(db)
+	pushSubscriptionRepo := repository.NewPushSubscriptionRepository(db)
 	alertHub := realtime.NewAlertHub()
 	stockQuoteHub := realtime.NewStockQuoteHub()
-	alertEventService := alert_events.NewAlertEventService(stockQuoteRepo, alertEventRepo, alertHub)
+	pushSubscriptionService, err := push_subscriptions.NewPushSubscriptionService(pushSubscriptionRepo, cfg.Push)
+	if err != nil {
+		logg.Fatalf("push subscription init error: %v", err)
+	}
+	alertNotifier := realtime.NewCompositeAlertNotifier(alertHub, pushSubscriptionService)
+	alertEventService := alert_events.NewAlertEventService(stockQuoteRepo, alertEventRepo, alertNotifier)
 	stockQuoteService := stock_quotes.NewStockQuoteService(stockRepo, stockQuoteRepo, alertEventService, stockQuoteHub, nil, cfg.Finnhub.Token)
 	stockQuoteController := controllers.NewStockQuoteController(stockQuoteService)
 	stockDailyRepo := repository.NewStockDailyRepository(db)
@@ -80,15 +88,26 @@ func main() {
 	authService := auth.NewAuthService(userRepo, refreshTokenRepo, cfg.State)
 	authController := controllers.NewAuthController(authService)
 	relationNewsController := controllers.NewRelationNewsController(relationNewsService)
+	pushSubscriptionController := controllers.NewPushSubscriptionController(pushSubscriptionService)
 	marketOpenRepo := repository.NewMarketOpenRepository(db)
 	marketOpenService := market_open.NewMarketOpenService(marketOpenRepo, nil, cfg.Finnhub.Token, stockQuoteService, stockDailyService, logg)
 	cleanupService := cleanup.NewCleanupService(stockQuoteRepo, companyNewsRepo, alertEventRepo, marketOpenRepo, refreshTokenRepo, 15, 7, 7, 30)
+	pushSubscriptionService.StartSimulation(context.Background())
 	marketOpenService.Start(context.Background())
 	companyNewsService.Start(context.Background())
 	cleanupService.Start(context.Background())
 
 	healthController := controllers.NewHealthController(healthRepo, "1.0.0")
-	appControllers := controllers.NewControllers(healthController, stockController, stockQuoteController, stockDailyController, companyNewsController, authController, relationNewsController)
+	appControllers := controllers.NewControllers(
+		healthController,
+		stockController,
+		stockQuoteController,
+		stockDailyController,
+		companyNewsController,
+		authController,
+		relationNewsController,
+		pushSubscriptionController,
+	)
 
 	// Fiber server
 	srv := server.NewServer(cfg, appControllers, alertHub, stockQuoteHub, logg)

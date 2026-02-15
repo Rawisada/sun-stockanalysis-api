@@ -11,13 +11,14 @@ type Response[T any] struct {
 }
 
 type Controllers struct {
-	HealthController       *HealthController
-	StockController        *StockController
-	StockQuoteController   *StockQuoteController
-	StockDailyController   *StockDailyController
-	CompanyNewsController  *CompanyNewsController
-	AuthController         *AuthController
-	RelationNewsController *RelationNewsController
+	HealthController           *HealthController
+	StockController            *StockController
+	StockQuoteController       *StockQuoteController
+	StockDailyController       *StockDailyController
+	CompanyNewsController      *CompanyNewsController
+	AuthController             *AuthController
+	RelationNewsController     *RelationNewsController
+	PushSubscriptionController *PushSubscriptionController
 }
 
 func NewControllers(
@@ -28,14 +29,16 @@ func NewControllers(
 	companyNewsController *CompanyNewsController,
 	authController *AuthController,
 	relationNewsController *RelationNewsController,
+	pushSubscriptionController *PushSubscriptionController,
 ) *Controllers {
 	return &Controllers{
-		HealthController:       healthController,
-		StockController:        stockController,
-		StockQuoteController:   stockQuoteController,
-		StockDailyController:   stockDailyController,
-		CompanyNewsController:  companyNewsController,
-		AuthController:         authController,
-		RelationNewsController: relationNewsController,
+		HealthController:           healthController,
+		StockController:            stockController,
+		StockQuoteController:       stockQuoteController,
+		StockDailyController:       stockDailyController,
+		CompanyNewsController:      companyNewsController,
+		AuthController:             authController,
+		RelationNewsController:     relationNewsController,
+		PushSubscriptionController: pushSubscriptionController,
 	}
 }

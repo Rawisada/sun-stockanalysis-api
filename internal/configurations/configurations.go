@@ -17,6 +17,7 @@ type (
 		State    *State    `mapstructure:"state" validate:"required"`
 		Database *Database `mapstructure:"database" validate:"required"`
 		Finnhub  *Finnhub  `mapstructure:"finnhub" validate:"required"`
+		Push     *Push     `mapstructure:"push"`
 	}
 
 	Server struct {
@@ -62,6 +63,15 @@ type (
 
 	Finnhub struct {
 		Token string `mapstructure:"token" validate:"required"`
+	}
+
+	Push struct {
+		Subject            string        `mapstructure:"subject"`
+		TriggerScore       int           `mapstructure:"triggerScore"`
+		VAPIDPublicKey     string        `mapstructure:"vapidPublicKey"`
+		VAPIDPrivateKey    string        `mapstructure:"vapidPrivateKey"`
+		SimulationEnabled  bool          `mapstructure:"simulationEnabled"`
+		SimulationInterval time.Duration `mapstructure:"simulationInterval"`
 	}
 )
 
@@ -123,6 +133,12 @@ func bindEnvKeys() {
 		"database.sslmode",
 		"database.schema",
 		"finnhub.token",
+		"push.subject",
+		"push.triggerScore",
+		"push.vapidPublicKey",
+		"push.vapidPrivateKey",
+		"push.simulationEnabled",
+		"push.simulationInterval",
 	}
 
 	for _, key := range keys {

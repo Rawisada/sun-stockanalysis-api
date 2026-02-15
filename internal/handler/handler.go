@@ -21,6 +21,7 @@ func RegisterRoutes(rootApi huma.API, controllers *controllers.Controllers, auth
 	routes.RegisterStockDailyRoutes(v1Api, controllers, authMiddleware(authSecret, authIssuer))
 	routes.RegisterCompanyNewsRoutes(v1Api, controllers, authMiddleware(authSecret, authIssuer))
 	routes.RegisterRelationNewsRoutes(v1Api, controllers, authMiddleware(authSecret, authIssuer))
+	routes.RegisterPushSubscriptionRoutes(v1Api, controllers, authMiddleware(authSecret, authIssuer))
 }
 
 // func requestIDMiddleware(ctx huma.Context, next func(huma.Context)) {
