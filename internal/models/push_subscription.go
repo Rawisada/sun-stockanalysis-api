@@ -1,6 +1,11 @@
 package models
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type PushSubscription struct {
 	ID        uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
@@ -17,4 +22,18 @@ type PushSubscription struct {
 
 func (PushSubscription) TableName() string {
 	return "push_subscriptions"
+}
+
+func (s *PushSubscription) BeforeCreate(_ *gorm.DB) error {
+	now := NewLocalTime(time.Now())
+	if time.Time(s.CreatedAt).IsZero() {
+		s.CreatedAt = now
+	}
+	s.UpdatedAt = now
+	return nil
+}
+
+func (s *PushSubscription) BeforeUpdate(_ *gorm.DB) error {
+	s.UpdatedAt = NewLocalTime(time.Now())
+	return nil
 }

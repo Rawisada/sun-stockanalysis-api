@@ -53,12 +53,18 @@ type StockDailyService interface {
 	BuildForWindow(ctx context.Context, start, end time.Time) error
 }
 
+type MarketOpenNotifier interface {
+	NotifyMarketOpen(message string)
+	NotifyMarketClose(message string)
+}
+
 type MarketOpenServiceImpl struct {
 	repo         repository.MarketOpenRepository
 	httpClient   HTTPClient
 	finnhubToken string
 	quoteService StockQuoteService
 	dailyService StockDailyService
+	notifier     MarketOpenNotifier
 	log          *logger.Logger
 }
 
@@ -68,6 +74,7 @@ func NewMarketOpenService(
 	finnhubToken string,
 	quoteService StockQuoteService,
 	dailyService StockDailyService,
+	notifier MarketOpenNotifier,
 	log *logger.Logger,
 ) MarketOpenService {
 	if httpClient == nil {
@@ -79,6 +86,7 @@ func NewMarketOpenService(
 		finnhubToken: finnhubToken,
 		quoteService: quoteService,
 		dailyService: dailyService,
+		notifier:     notifier,
 		log:          log,
 	}
 }
@@ -100,7 +108,7 @@ func (s *MarketOpenServiceImpl) runScheduler(ctx context.Context) {
 			return
 		case <-timer.C:
 		}
-	
+
 		s.runDailyPolling(ctx)
 	}
 }
@@ -136,6 +144,9 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 			if s.quoteService != nil && !quoteStarted {
 				s.quoteService.Start(ctx)
 				quoteStarted = true
+				if s.notifier != nil {
+					s.notifier.NotifyMarketOpen("The market is open. Prices are being updated.")
+				}
 			}
 			sleepContext(ctx, pollInterval)
 			continue
@@ -145,6 +156,9 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 				s.quoteService.RunOnce(ctx)
 				s.quoteService.Stop()
 				postHandled = true
+				if s.notifier != nil {
+					s.notifier.NotifyMarketClose("ตลาดปิดแล้ว")
+				}
 				if s.dailyService != nil {
 					start, end := metricsWindow(time.Now())
 					_ = s.dailyService.BuildForWindow(ctx, start, end)

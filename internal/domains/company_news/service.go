@@ -25,6 +25,10 @@ type CompanyNewsService interface {
 	ListBySymbolAndDate(ctx context.Context, symbol string, start, end time.Time) ([]models.CompanyNews, error)
 }
 
+type CompanyNewsNotifier interface {
+	NotifyCompanyNewsReady(message string)
+}
+
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
@@ -35,11 +39,13 @@ type CompanyNewsServiceImpl struct {
 	httpClient   HTTPClient
 	finnhubToken string
 	log          *logger.Logger
+	notifier     CompanyNewsNotifier
 }
 
 func NewCompanyNewsService(
 	relationRepo repository.RelationNewsRepository,
 	companyRepo repository.CompanyNewsRepository,
+	notifier CompanyNewsNotifier,
 	httpClient HTTPClient,
 	finnhubToken string,
 	log *logger.Logger,
@@ -50,6 +56,7 @@ func NewCompanyNewsService(
 	return &CompanyNewsServiceImpl{
 		relationRepo: relationRepo,
 		companyRepo:  companyRepo,
+		notifier:     notifier,
 		httpClient:   httpClient,
 		finnhubToken: finnhubToken,
 		log:          log,
@@ -107,6 +114,7 @@ func (s *CompanyNewsServiceImpl) runOnce(ctx context.Context) {
 		s.log.Infof("company_news fetch started: symbols=%d date=%s", len(symbols), today)
 	}
 	totalSaved := 0
+	notifiedToday := false
 	for _, symbol := range symbols {
 		select {
 		case <-ctx.Done():
@@ -136,6 +144,10 @@ func (s *CompanyNewsServiceImpl) runOnce(ctx context.Context) {
 		}
 		if err := s.companyRepo.CreateMany(items); err == nil {
 			totalSaved += len(items)
+			if s.notifier != nil && !notifiedToday {
+				s.notifier.NotifyCompanyNewsReady("Today's stock market news is here.")
+				notifiedToday = true
+			}
 		}
 	}
 	if s.log != nil {

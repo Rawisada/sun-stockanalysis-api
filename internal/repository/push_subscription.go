@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -15,6 +16,7 @@ type PushSubscriptionRepository interface {
 	ListActive() ([]models.PushSubscription, error)
 	DeleteByEndpoint(endpoint string) error
 	DeleteByUserAndDevice(userID uuid.UUID, deviceID string) error
+	DeleteBefore(t time.Time) error
 }
 
 type PushSubscriptionRepositoryImpl struct {
@@ -70,5 +72,11 @@ func (r *PushSubscriptionRepositoryImpl) DeleteByUserAndDevice(userID uuid.UUID,
 	}
 	return r.db.
 		Where("user_id = ? AND device_id = ?", userID, deviceID).
+		Delete(&models.PushSubscription{}).Error
+}
+
+func (r *PushSubscriptionRepositoryImpl) DeleteBefore(t time.Time) error {
+	return r.db.
+		Where("created_at < ?", t).
 		Delete(&models.PushSubscription{}).Error
 }

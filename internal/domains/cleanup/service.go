@@ -12,15 +12,17 @@ type CleanupService interface {
 }
 
 type CleanupServiceImpl struct {
-	quoteRepo              repository.StockQuoteRepository
-	companyRepo            repository.CompanyNewsRepository
-	alertEventRepo         repository.AlertEventRepository
-	marketOpenRepo         repository.MarketOpenRepository
-	refreshTokenRepo       repository.RefreshTokenRepository
-	retainDays             int
-	alertRetainDays        int
-	marketOpenRetainDays   int
-	refreshTokenRetainDays int
+	quoteRepo                  repository.StockQuoteRepository
+	companyRepo                repository.CompanyNewsRepository
+	alertEventRepo             repository.AlertEventRepository
+	marketOpenRepo             repository.MarketOpenRepository
+	refreshTokenRepo           repository.RefreshTokenRepository
+	pushSubscriptionRepo       repository.PushSubscriptionRepository
+	retainDays                 int
+	alertRetainDays            int
+	marketOpenRetainDays       int
+	refreshTokenRetainDays     int
+	pushSubscriptionRetainDays int
 }
 
 func NewCleanupService(
@@ -29,10 +31,12 @@ func NewCleanupService(
 	alertEventRepo repository.AlertEventRepository,
 	marketOpenRepo repository.MarketOpenRepository,
 	refreshTokenRepo repository.RefreshTokenRepository,
+	pushSubscriptionRepo repository.PushSubscriptionRepository,
 	retainDays int,
 	alertRetainDays int,
 	marketOpenRetainDays int,
 	refreshTokenRetainDays int,
+	pushSubscriptionRetainDays int,
 ) CleanupService {
 	if retainDays <= 0 {
 		retainDays = 15
@@ -46,16 +50,21 @@ func NewCleanupService(
 	if refreshTokenRetainDays <= 0 {
 		refreshTokenRetainDays = 30
 	}
+	if pushSubscriptionRetainDays <= 0 {
+		pushSubscriptionRetainDays = 30
+	}
 	return &CleanupServiceImpl{
-		quoteRepo:              quoteRepo,
-		companyRepo:            companyRepo,
-		alertEventRepo:         alertEventRepo,
-		marketOpenRepo:         marketOpenRepo,
-		refreshTokenRepo:       refreshTokenRepo,
-		retainDays:             retainDays,
-		alertRetainDays:        alertRetainDays,
-		marketOpenRetainDays:   marketOpenRetainDays,
-		refreshTokenRetainDays: refreshTokenRetainDays,
+		quoteRepo:                  quoteRepo,
+		companyRepo:                companyRepo,
+		alertEventRepo:             alertEventRepo,
+		marketOpenRepo:             marketOpenRepo,
+		refreshTokenRepo:           refreshTokenRepo,
+		pushSubscriptionRepo:       pushSubscriptionRepo,
+		retainDays:                 retainDays,
+		alertRetainDays:            alertRetainDays,
+		marketOpenRetainDays:       marketOpenRetainDays,
+		refreshTokenRetainDays:     refreshTokenRetainDays,
+		pushSubscriptionRetainDays: pushSubscriptionRetainDays,
 	}
 }
 
@@ -93,6 +102,8 @@ func (s *CleanupServiceImpl) runOnce(ctx context.Context) {
 		AddDate(0, 0, -s.marketOpenRetainDays)
 	refreshTokenCutoffDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc).
 		AddDate(0, 0, -s.refreshTokenRetainDays)
+	pushSubscriptionCutoffDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc).
+		AddDate(0, 0, -s.pushSubscriptionRetainDays)
 
 	if s.quoteRepo != nil {
 		_ = s.quoteRepo.DeleteBefore(cutoffDate)
@@ -108,6 +119,9 @@ func (s *CleanupServiceImpl) runOnce(ctx context.Context) {
 	}
 	if s.refreshTokenRepo != nil {
 		_ = s.refreshTokenRepo.DeleteBefore(refreshTokenCutoffDate)
+	}
+	if s.pushSubscriptionRepo != nil {
+		_ = s.pushSubscriptionRepo.DeleteBefore(pushSubscriptionCutoffDate)
 	}
 }
 

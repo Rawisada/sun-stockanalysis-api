@@ -75,11 +75,11 @@ func (s *StockDailyServiceImpl) BuildForWindow(ctx context.Context, start, end t
 		ema20 := s.calculateEMA(symbol, last.PriceCurrent, emaPeriod20)
 		ema100 := s.calculateEMA(symbol, last.PriceCurrent, emaPeriod100)
 		emaTrend := 0
-		if ema20 > ema100{
+		if ema20 > ema100 {
 			emaTrend = 1
-		} else if ema20 < ema100{
+		} else if ema20 < ema100 {
 			emaTrend = -1
-		} else if ema20 == ema100{
+		} else if ema20 == ema100 {
 			emaTrend = 0
 		}
 
@@ -96,7 +96,7 @@ func (s *StockDailyServiceImpl) BuildForWindow(ctx context.Context, start, end t
 			EMA20:          ema20,
 			EMA100:         ema100,
 			TradeDate:      tradeDate,
-			EMATrend: emaTrend,
+			EMATrend:       emaTrend,
 		}
 
 		if err := s.metricRepo.Create(metric); err != nil {
@@ -116,7 +116,7 @@ func (s *StockDailyServiceImpl) ListBySymbol(ctx context.Context, symbol string)
 	if symbol == "" {
 		return nil, errors.New("symbol is empty")
 	}
-	return s.metricRepo.FindBySymbol(symbol)
+	return s.metricRepo.FindPreviousBySymbol(symbol)
 }
 
 func (s *StockDailyServiceImpl) calculateEMA(symbol string, current float64, period int) float64 {
@@ -165,7 +165,6 @@ func summarizePrices(quotes []models.StockQuote) (avg float64, high float64, low
 	avg = sum / float64(len(quotes))
 	return avg, high, low
 }
-
 
 func tradeDateFromEnd(end time.Time) models.LocalDate {
 	loc := time.FixedZone("Asia/Bangkok", 7*60*60)

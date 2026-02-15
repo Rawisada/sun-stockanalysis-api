@@ -66,12 +66,10 @@ type (
 	}
 
 	Push struct {
-		Subject            string        `mapstructure:"subject"`
-		TriggerScore       int           `mapstructure:"triggerScore"`
-		VAPIDPublicKey     string        `mapstructure:"vapidPublicKey"`
-		VAPIDPrivateKey    string        `mapstructure:"vapidPrivateKey"`
-		SimulationEnabled  bool          `mapstructure:"simulationEnabled"`
-		SimulationInterval time.Duration `mapstructure:"simulationInterval"`
+		Subject         string `mapstructure:"subject"`
+		TriggerScore    int    `mapstructure:"triggerScore"`
+		VAPIDPublicKey  string `mapstructure:"vapidPublicKey"`
+		VAPIDPrivateKey string `mapstructure:"vapidPrivateKey"`
 	}
 )
 
@@ -137,8 +135,6 @@ func bindEnvKeys() {
 		"push.triggerScore",
 		"push.vapidPublicKey",
 		"push.vapidPrivateKey",
-		"push.simulationEnabled",
-		"push.simulationInterval",
 	}
 
 	for _, key := range keys {

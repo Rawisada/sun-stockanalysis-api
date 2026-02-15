@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/google/uuid"
@@ -30,17 +29,17 @@ type PushSubscriptionService interface {
 	Save(ctx context.Context, userID string, input SaveSubscriptionInput) error
 	Delete(ctx context.Context, userID, deviceID string) error
 	Notify(event *models.AlertEvent, message string)
-	StartSimulation(ctx context.Context)
+	NotifyCompanyNewsReady(message string)
+	NotifyMarketOpen(message string)
+	NotifyMarketClose(message string)
 }
 
 type PushSubscriptionServiceImpl struct {
-	subRepo            repository.PushSubscriptionRepository
-	vapidPublicKey     string
-	vapidPrivate       string
-	subject            string
-	triggerScore       int
-	simulationEnabled  bool
-	simulationInterval time.Duration
+	subRepo        repository.PushSubscriptionRepository
+	vapidPublicKey string
+	vapidPrivate   string
+	subject        string
+	triggerScore   int
 }
 
 func NewPushSubscriptionService(
@@ -52,10 +51,9 @@ func NewPushSubscriptionService(
 	}
 
 	service := &PushSubscriptionServiceImpl{
-		subRepo:            subRepo,
-		subject:            "mailto:admin@example.com",
-		triggerScore:       4,
-		simulationInterval: 5 * time.Minute,
+		subRepo:      subRepo,
+		subject:      "mailto:admin@example.com",
+		triggerScore: 4,
 	}
 
 	if pushCfg != nil {
@@ -67,10 +65,6 @@ func NewPushSubscriptionService(
 		}
 		service.vapidPublicKey = strings.TrimSpace(pushCfg.VAPIDPublicKey)
 		service.vapidPrivate = strings.TrimSpace(pushCfg.VAPIDPrivateKey)
-		service.simulationEnabled = pushCfg.SimulationEnabled
-		if pushCfg.SimulationInterval > 0 {
-			service.simulationInterval = pushCfg.SimulationInterval
-		}
 	}
 
 	if err := service.ensureVAPIDKeys(); err != nil {
@@ -163,39 +157,37 @@ func (s *PushSubscriptionServiceImpl) Notify(event *models.AlertEvent, message s
 	s.sendToSubscriptions(payload)
 }
 
-func (s *PushSubscriptionServiceImpl) StartSimulation(ctx context.Context) {
-	if !s.simulationEnabled {
+func (s *PushSubscriptionServiceImpl) NotifyCompanyNewsReady(message string) {
+	if strings.TrimSpace(message) == "" {
+		message = "ข่าววันนี้มาเเล้ว"
+	}
+	payload, err := s.buildPopupPayload("Company News", nil, message)
+	if err != nil {
 		return
 	}
-	interval := s.simulationInterval
-	if interval <= 0 {
-		interval = 5 * time.Minute
+	s.sendToSubscriptions(payload)
+}
+
+func (s *PushSubscriptionServiceImpl) NotifyMarketOpen(message string) {
+	if strings.TrimSpace(message) == "" {
+		message = "ตลาดเปิดแล้ว"
 	}
+	payload, err := s.buildPopupPayload("Market Open", nil, message)
+	if err != nil {
+		return
+	}
+	s.sendToSubscriptions(payload)
+}
 
-	go func() {
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				// synthetic event for quick end-to-end push verification
-				simulated := &models.AlertEvent{
-					Symbol:       "SIMULATION",
-					TrendEMA20:   4,
-					TrendTanhEMA: 1,
-					ScoreEMA:     4,
-				}
-				payload, err := s.buildPopupPayload("Simulation Alert", simulated, "ทดสอบแจ้งเตือนทุก 5 นาที")
-				if err != nil {
-					continue
-				}
-				s.sendToSubscriptions(payload)
-			}
-		}
-	}()
+func (s *PushSubscriptionServiceImpl) NotifyMarketClose(message string) {
+	if strings.TrimSpace(message) == "" {
+		message = "ตลาดปิดแล้ว"
+	}
+	payload, err := s.buildPopupPayload("Market Close", nil, message)
+	if err != nil {
+		return
+	}
+	s.sendToSubscriptions(payload)
 }
 
 func (s *PushSubscriptionServiceImpl) buildPopupPayload(title string, event *models.AlertEvent, message string) ([]byte, error) {

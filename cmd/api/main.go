@@ -80,7 +80,7 @@ func main() {
 	relationNewsRepo := repository.NewRelationNewsRepository(db)
 	relationNewsService := relation_news.NewRelationNewsService(relationNewsRepo)
 	companyNewsRepo := repository.NewCompanyNewsRepository(db)
-	companyNewsService := company_news.NewCompanyNewsService(relationNewsRepo, companyNewsRepo, nil, cfg.Finnhub.Token, logg)
+	companyNewsService := company_news.NewCompanyNewsService(relationNewsRepo, companyNewsRepo, pushSubscriptionService, nil, cfg.Finnhub.Token, logg)
 	companyNewsController := controllers.NewCompanyNewsController(companyNewsService)
 	healthRepo := repository.NewHealthRepository(db)
 	userRepo := repository.NewUserRepository(db)
@@ -90,9 +90,20 @@ func main() {
 	relationNewsController := controllers.NewRelationNewsController(relationNewsService)
 	pushSubscriptionController := controllers.NewPushSubscriptionController(pushSubscriptionService)
 	marketOpenRepo := repository.NewMarketOpenRepository(db)
-	marketOpenService := market_open.NewMarketOpenService(marketOpenRepo, nil, cfg.Finnhub.Token, stockQuoteService, stockDailyService, logg)
-	cleanupService := cleanup.NewCleanupService(stockQuoteRepo, companyNewsRepo, alertEventRepo, marketOpenRepo, refreshTokenRepo, 15, 7, 7, 30)
-	pushSubscriptionService.StartSimulation(context.Background())
+	marketOpenService := market_open.NewMarketOpenService(marketOpenRepo, nil, cfg.Finnhub.Token, stockQuoteService, stockDailyService, pushSubscriptionService, logg)
+	cleanupService := cleanup.NewCleanupService(
+		stockQuoteRepo,
+		companyNewsRepo,
+		alertEventRepo,
+		marketOpenRepo,
+		refreshTokenRepo,
+		pushSubscriptionRepo,
+		15,
+		7,
+		7,
+		30,
+		30,
+	)
 	marketOpenService.Start(context.Background())
 	companyNewsService.Start(context.Background())
 	cleanupService.Start(context.Background())
