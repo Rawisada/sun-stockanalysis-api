@@ -26,6 +26,8 @@ const (
 	defaultPollSeconds     = 60
 	defaultStopHour        = 4
 	defaultStopMinute      = 30
+	defaultSchedulerHour   = 20
+	defaultSchedulerMinute = 25
 )
 
 var (
@@ -33,6 +35,8 @@ var (
 	pollInterval    = time.Duration(getEnvInt("MARKET_POLL_SECONDS", defaultPollSeconds)) * time.Second
 	stopHour        = getEnvInt("MARKET_STOP_HOUR", defaultStopHour)
 	stopMinute      = getEnvInt("MARKET_STOP_MINUTE", defaultStopMinute)
+	schedulerHour   = getEnvInt("MARKET_SCHEDULER_HOUR", defaultSchedulerHour)
+	schedulerMinute = getEnvInt("MARKET_SCHEDULER_MINUTE", defaultSchedulerMinute)
 )
 
 type MarketOpenService interface {
@@ -100,7 +104,7 @@ func (s *MarketOpenServiceImpl) runScheduler(ctx context.Context) {
 	// s.runDailyPolling(ctx)
 
 	for {
-		wait := nextRunDuration(20, 25, time.Local)
+		wait := nextRunDuration(schedulerHour, schedulerMinute, time.Local)
 		timer := time.NewTimer(wait)
 		select {
 		case <-ctx.Done():
