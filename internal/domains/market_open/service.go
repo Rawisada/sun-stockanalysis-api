@@ -102,6 +102,27 @@ func (s *MarketOpenServiceImpl) Start(ctx context.Context) {
 func (s *MarketOpenServiceImpl) runScheduler(ctx context.Context) {
 	// TEMP: run immediately on startup.
 	// s.runDailyPolling(ctx)
+	now := time.Now()
+	if shouldRunOnStartup(now, time.Local) {
+		if s.log != nil {
+			s.log.Infof(
+				"scheduler startup decision: run immediately (now=%s, scheduler=%02d:%02d, stop=%02d:%02d)",
+				now.In(time.Local).Format(time.RFC3339),
+				schedulerHour, schedulerMinute, stopHour, stopMinute,
+			)
+		}
+		s.runDailyPolling(ctx)
+	} else {
+		if s.log != nil {
+			wait := nextRunDuration(schedulerHour, schedulerMinute, time.Local)
+			s.log.Infof(
+				"scheduler startup decision: wait for next run (now=%s, next_in=%s, scheduler=%02d:%02d)",
+				now.In(time.Local).Format(time.RFC3339),
+				wait.String(),
+				schedulerHour, schedulerMinute,
+			)
+		}
+	}
 
 	for {
 		wait := nextRunDuration(schedulerHour, schedulerMinute, time.Local)
@@ -130,9 +151,15 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 
 		status, err := s.fetchMarketStatus()
 		if err != nil {
+			if s.log != nil {
+				s.log.Errorf("fetchMarketStatus failed: %v", err)
+			}
 			return
 		}
 		if status == nil {
+			if s.log != nil {
+				s.log.Warnf("fetchMarketStatus returned nil status")
+			}
 			return
 		}
 
@@ -340,6 +367,21 @@ func nextRunDuration(hour, minute int, loc *time.Location) time.Duration {
 		next = next.Add(24 * time.Hour)
 	}
 	return time.Until(next)
+}
+
+func shouldRunOnStartup(now time.Time, loc *time.Location) bool {
+	current := now.In(loc)
+	scheduledToday := time.Date(current.Year(), current.Month(), current.Day(), schedulerHour, schedulerMinute, 0, 0, loc)
+	stopToday := time.Date(current.Year(), current.Month(), current.Day(), stopHour, stopMinute, 0, 0, loc)
+
+	// If startup is after midnight but before stop time, this belongs to yesterday's market window.
+	if current.Before(stopToday) {
+		scheduledYesterday := scheduledToday.Add(-24 * time.Hour)
+		return !current.Before(scheduledYesterday)
+	}
+
+	// Same-day startup: run immediately only when startup time is at/after the configured scheduler time.
+	return !current.Before(scheduledToday)
 }
 
 func sleepContext(ctx context.Context, d time.Duration) {
