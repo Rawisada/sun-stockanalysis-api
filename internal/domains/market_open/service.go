@@ -26,8 +26,8 @@ const (
 	defaultPollSeconds     = 60
 	defaultStopHour        = 4
 	defaultStopMinute      = 30
-	defaultSchedulerHour   = 00
-	defaultSchedulerMinute = 16
+	defaultSchedulerHour   = 20
+	defaultSchedulerMinute = 25
 )
 
 var (
@@ -100,8 +100,18 @@ func (s *MarketOpenServiceImpl) Start(ctx context.Context) {
 }
 
 func (s *MarketOpenServiceImpl) runScheduler(ctx context.Context) {
-	// TEMP: run immediately on startup.
-	// s.runDailyPolling(ctx)
+	now := time.Now()
+	if shouldRunOnStartup(now, time.Local) {
+		if s.log != nil {
+			s.log.Infof("market scheduler: start runDailyPolling immediately on startup (now=%s)", now.In(time.Local).Format(time.RFC3339))
+		}
+		s.runDailyPolling(ctx)
+	} else {
+		if s.log != nil {
+			wait := nextRunDuration(schedulerHour, schedulerMinute, time.Local)
+			s.log.Infof("market scheduler: wait for scheduled run (now=%s next_in=%s schedule=%02d:%02d)", now.In(time.Local).Format(time.RFC3339), wait.String(), schedulerHour, schedulerMinute)
+		}
+	}
 
 	for {
 		wait := nextRunDuration(schedulerHour, schedulerMinute, time.Local)
@@ -113,6 +123,9 @@ func (s *MarketOpenServiceImpl) runScheduler(ctx context.Context) {
 		case <-timer.C:
 		}
 
+		if s.log != nil {
+			s.log.Infof("market scheduler: start runDailyPolling on schedule (now=%s schedule=%02d:%02d)", time.Now().In(time.Local).Format(time.RFC3339), schedulerHour, schedulerMinute)
+		}
 		s.runDailyPolling(ctx)
 	}
 }
@@ -122,7 +135,6 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 	postHandled := false
 
 	for {
-		// Hard stop for the current market window (e.g. 04:00 next day).
 		if shouldStopForDay(time.Now()) {
 			return
 		}
@@ -323,7 +335,7 @@ func tradeDateForMarketWindow(at time.Time) time.Time {
 func shouldStopForDay(now time.Time) bool {
 	loc := time.FixedZone("Asia/Bangkok", 7*60*60)
 	current := now.In(loc)
-	stopAt := time.Date(current.Year(), current.Month(), current.Day(), stopHour, stopMinute, 0, 0, loc)
+	stopAt := windowStopAt(current, loc)
 	return !current.Before(stopAt)
 }
 
@@ -342,6 +354,39 @@ func nextRunDuration(hour, minute int, loc *time.Location) time.Duration {
 		next = next.Add(24 * time.Hour)
 	}
 	return time.Until(next)
+}
+
+func shouldRunOnStartup(now time.Time, loc *time.Location) bool {
+	current := now.In(loc)
+	scheduledToday := time.Date(current.Year(), current.Month(), current.Day(), schedulerHour, schedulerMinute, 0, 0, loc)
+	stopToday := time.Date(current.Year(), current.Month(), current.Day(), stopHour, stopMinute, 0, 0, loc)
+
+	// 00:00..stop belongs to the previous day window, so run immediately.
+	if current.Before(stopToday) {
+		return true
+	}
+	// Between stop and scheduler => wait until scheduler time.
+	if current.Before(scheduledToday) {
+		return false
+	}
+	// At/after scheduler => run immediately.
+	return true
+}
+
+func windowStopAt(current time.Time, loc *time.Location) time.Time {
+	stopToday := time.Date(current.Year(), current.Month(), current.Day(), stopHour, stopMinute, 0, 0, loc)
+	scheduledToday := time.Date(current.Year(), current.Month(), current.Day(), schedulerHour, schedulerMinute, 0, 0, loc)
+
+	// 00:00..stop => stop at today's stop.
+	if current.Before(stopToday) {
+		return stopToday
+	}
+	// At/after scheduler => stop at next day's stop.
+	if !current.Before(scheduledToday) {
+		return stopToday.Add(24 * time.Hour)
+	}
+	// Between stop and scheduler => outside window (already stopped).
+	return stopToday
 }
 
 func sleepContext(ctx context.Context, d time.Duration) {
