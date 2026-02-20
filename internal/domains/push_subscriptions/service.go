@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
+	"math"
 	"net/http"
 	"strings"
 
@@ -144,13 +146,14 @@ func (s *PushSubscriptionServiceImpl) Notify(event *models.AlertEvent, message s
 	if event == nil {
 		return
 	}
-	score := int(event.ScoreEMA)
-	if score != s.triggerScore && score != -s.triggerScore {
+	if math.Abs(event.ScoreEMA) < float64(s.triggerScore) {
+		log.Printf("push notify skipped symbol=%s score_ema=%.6f trigger=%d", event.Symbol, event.ScoreEMA, s.triggerScore)
 		return
 	}
 
 	payload, err := s.buildPopupPayload("Stock Alert", event, message)
 	if err != nil {
+		log.Printf("push payload build failed symbol=%s err=%v", event.Symbol, err)
 		return
 	}
 
@@ -160,22 +163,32 @@ func (s *PushSubscriptionServiceImpl) Notify(event *models.AlertEvent, message s
 func (s *PushSubscriptionServiceImpl) NotifyCompanyNewsReady(message string) {
 	if strings.TrimSpace(message) == "" {
 		message = "ข่าววันนี้มาเเล้ว"
+		log.Printf("push company-news using default message=%q", message)
+	} else {
+		log.Printf("push company-news message=%q", message)
 	}
 	payload, err := s.buildPopupPayload("Company News", nil, message)
 	if err != nil {
+		log.Printf("push company-news payload build failed err=%v", err)
 		return
 	}
+	log.Printf("push company-news payload built; dispatching to subscriptions")
 	s.sendToSubscriptions(payload)
 }
 
 func (s *PushSubscriptionServiceImpl) NotifyMarketOpen(message string) {
 	if strings.TrimSpace(message) == "" {
 		message = "ตลาดเปิดแล้ว"
+		log.Printf("push market-open using default message=%q", message)
+	} else {
+		log.Printf("push market-open message=%q", message)
 	}
 	payload, err := s.buildPopupPayload("Market Open", nil, message)
 	if err != nil {
+		log.Printf("push market-open payload build failed err=%v", err)
 		return
 	}
+	log.Printf("push market-open payload built; dispatching to subscriptions")
 	s.sendToSubscriptions(payload)
 }
 
@@ -206,10 +219,16 @@ func (s *PushSubscriptionServiceImpl) buildPopupPayload(title string, event *mod
 
 func (s *PushSubscriptionServiceImpl) sendToSubscriptions(payload []byte) {
 	subscriptions, err := s.subRepo.ListActive()
-	if err != nil || len(subscriptions) == 0 {
+	if err != nil {
+		log.Printf("push list subscriptions failed err=%v", err)
+		return
+	}
+	if len(subscriptions) == 0 {
+		log.Printf("push skipped: no active subscriptions")
 		return
 	}
 
+	log.Printf("push sending to active subscriptions count=%d", len(subscriptions))
 	for _, sub := range subscriptions {
 		resp, sendErr := webpush.SendNotification(payload, &webpush.Subscription{
 			Endpoint: sub.Endpoint,
@@ -224,7 +243,11 @@ func (s *PushSubscriptionServiceImpl) sendToSubscriptions(payload []byte) {
 			TTL:             30,
 		})
 		if resp != nil {
+			body, _ := io.ReadAll(resp.Body)
 			_ = resp.Body.Close()
+			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+				log.Printf("push notify non-2xx endpoint=%s status=%d body=%s", sub.Endpoint, resp.StatusCode, strings.TrimSpace(string(body)))
+			}
 			if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone {
 				_ = s.subRepo.DeleteByEndpoint(sub.Endpoint)
 			}
