@@ -26,8 +26,8 @@ const (
 	defaultPollSeconds     = 60
 	defaultStopHour        = 4
 	defaultStopMinute      = 30
-	defaultSchedulerHour   = 20
-	defaultSchedulerMinute = 25
+	defaultSchedulerHour   = 00
+	defaultSchedulerMinute = 16
 )
 
 var (
@@ -122,6 +122,11 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 	postHandled := false
 
 	for {
+		// Hard stop for the current market window (e.g. 04:00 next day).
+		if shouldStopForDay(time.Now()) {
+			return
+		}
+
 		select {
 		case <-ctx.Done():
 			return
@@ -171,9 +176,6 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 			sleepContext(ctx, pollInterval)
 			continue
 		default:
-			if shouldStopForDay(time.Now()) {
-				return
-			}
 			sleepContext(ctx, pollInterval)
 			continue
 		}
