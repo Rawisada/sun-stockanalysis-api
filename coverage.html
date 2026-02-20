@@ -2101,6 +2101,8 @@ const (
         defaultPollSeconds     = 60
         defaultStopHour        = 4
         defaultStopMinute      = 30
+        defaultSchedulerHour   = 20
+        defaultSchedulerMinute = 25
 )
 
 var (
@@ -2108,6 +2110,8 @@ var (
         pollInterval    = time.Duration(getEnvInt("MARKET_POLL_SECONDS", defaultPollSeconds)) * time.Second
         stopHour        = getEnvInt("MARKET_STOP_HOUR", defaultStopHour)
         stopMinute      = getEnvInt("MARKET_STOP_MINUTE", defaultStopMinute)
+        schedulerHour   = getEnvInt("MARKET_SCHEDULER_HOUR", defaultSchedulerHour)
+        schedulerMinute = getEnvInt("MARKET_SCHEDULER_MINUTE", defaultSchedulerMinute)
 )
 
 type MarketOpenService interface {
@@ -2173,9 +2177,30 @@ func (s *MarketOpenServiceImpl) Start(ctx context.Context) <span class="cov0" ti
 func (s *MarketOpenServiceImpl) runScheduler(ctx context.Context) <span class="cov0" title="0">{
         // TEMP: run immediately on startup.
         // s.runDailyPolling(ctx)
+        now := time.Now()
+        if shouldRunOnStartup(now, time.Local) </span><span class="cov0" title="0">{
+                if s.log != nil </span><span class="cov0" title="0">{
+                        s.log.Infof(
+                                "scheduler startup decision: run immediately (now=%s, scheduler=%02d:%02d, stop=%02d:%02d)",
+                                now.In(time.Local).Format(time.RFC3339),
+                                schedulerHour, schedulerMinute, stopHour, stopMinute,
+                        )
+                }</span>
+                <span class="cov0" title="0">s.runDailyPolling(ctx)</span>
+        } else<span class="cov0" title="0"> {
+                if s.log != nil </span><span class="cov0" title="0">{
+                        wait := nextRunDuration(schedulerHour, schedulerMinute, time.Local)
+                        s.log.Infof(
+                                "scheduler startup decision: wait for next run (now=%s, next_in=%s, scheduler=%02d:%02d)",
+                                now.In(time.Local).Format(time.RFC3339),
+                                wait.String(),
+                                schedulerHour, schedulerMinute,
+                        )
+                }</span>
+        }
 
-        for </span><span class="cov0" title="0">{
-                wait := nextRunDuration(20, 25, time.Local)
+        <span class="cov0" title="0">for </span><span class="cov0" title="0">{
+                wait := nextRunDuration(schedulerHour, schedulerMinute, time.Local)
                 timer := time.NewTimer(wait)
                 select </span>{
                 case &lt;-ctx.Done():<span class="cov0" title="0">
@@ -2201,11 +2226,17 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) <span class
 
                 <span class="cov0" title="0">status, err := s.fetchMarketStatus()
                 if err != nil </span><span class="cov0" title="0">{
-                        return
-                }</span>
+                        if s.log != nil </span><span class="cov0" title="0">{
+                                s.log.Errorf("fetchMarketStatus failed: %v", err)
+                        }</span>
+                        <span class="cov0" title="0">return</span>
+                }
                 <span class="cov0" title="0">if status == nil </span><span class="cov0" title="0">{
-                        return
-                }</span>
+                        if s.log != nil </span><span class="cov0" title="0">{
+                                s.log.Warnf("fetchMarketStatus returned nil status")
+                        }</span>
+                        <span class="cov0" title="0">return</span>
+                }
 
                 <span class="cov0" title="0">session := strings.ToLower(strings.TrimSpace(status.session()))
                 isOpen := status.isOpen()
@@ -2411,6 +2442,21 @@ func nextRunDuration(hour, minute int, loc *time.Location) time.Duration <span c
                 next = next.Add(24 * time.Hour)
         }</span>
         <span class="cov0" title="0">return time.Until(next)</span>
+}
+
+func shouldRunOnStartup(now time.Time, loc *time.Location) bool <span class="cov0" title="0">{
+        current := now.In(loc)
+        scheduledToday := time.Date(current.Year(), current.Month(), current.Day(), schedulerHour, schedulerMinute, 0, 0, loc)
+        stopToday := time.Date(current.Year(), current.Month(), current.Day(), stopHour, stopMinute, 0, 0, loc)
+
+        // If startup is after midnight but before stop time, this belongs to yesterday's market window.
+        if current.Before(stopToday) </span><span class="cov0" title="0">{
+                scheduledYesterday := scheduledToday.Add(-24 * time.Hour)
+                return !current.Before(scheduledYesterday)
+        }</span>
+
+        // Same-day startup: run immediately only when startup time is at/after the configured scheduler time.
+        <span class="cov0" title="0">return !current.Before(scheduledToday)</span>
 }
 
 func sleepContext(ctx context.Context, d time.Duration) <span class="cov0" title="0">{
