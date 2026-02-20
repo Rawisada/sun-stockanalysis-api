@@ -90,7 +90,7 @@ func (s *CompanyNewsServiceImpl) ListBySymbolAndDate(ctx context.Context, symbol
 
 func (s *CompanyNewsServiceImpl) runScheduler(ctx context.Context) {
 	for {
-		wait := nextRunDuration(20, 00, thailandLocation())
+		wait := nextRunDuration(23, 53, thailandLocation())
 		timer := time.NewTimer(wait)
 		select {
 		case <-ctx.Done():
