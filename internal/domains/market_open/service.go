@@ -24,9 +24,6 @@ import (
 const (
 	defaultMarketStatusURL = "https://finnhub.io/api/v1/stock/market-status?exchange=US"
 	defaultPollSeconds     = 60
-	defaultTimeoutSeconds  = 10
-	defaultFetchRetries    = 3
-	defaultRetryBackoffMS  = 1500
 	defaultStopHour        = 4
 	defaultStopMinute      = 30
 	defaultSchedulerHour   = 20
@@ -36,9 +33,6 @@ const (
 var (
 	marketStatusURL = getEnvString("MARKET_STATUS_URL", defaultMarketStatusURL)
 	pollInterval    = time.Duration(getEnvInt("MARKET_POLL_SECONDS", defaultPollSeconds)) * time.Second
-	marketTimeout   = time.Duration(getEnvPositiveInt("MARKET_TIMEOUT_SECONDS", defaultTimeoutSeconds)) * time.Second
-	fetchRetries    = getEnvPositiveInt("MARKET_FETCH_RETRIES", defaultFetchRetries)
-	retryBackoff    = time.Duration(getEnvPositiveInt("MARKET_RETRY_BACKOFF_MS", defaultRetryBackoffMS)) * time.Millisecond
 	stopHour        = getEnvInt("MARKET_STOP_HOUR", defaultStopHour)
 	stopMinute      = getEnvInt("MARKET_STOP_MINUTE", defaultStopMinute)
 	schedulerHour   = getEnvInt("MARKET_SCHEDULER_HOUR", defaultSchedulerHour)
@@ -76,9 +70,6 @@ type MarketOpenServiceImpl struct {
 	dailyService StockDailyService
 	notifier     MarketOpenNotifier
 	log          *logger.Logger
-	requestTimeout time.Duration
-	maxRetries     int
-	retryDelay     time.Duration
 }
 
 func NewMarketOpenService(
@@ -91,19 +82,16 @@ func NewMarketOpenService(
 	log *logger.Logger,
 ) MarketOpenService {
 	if httpClient == nil {
-		httpClient = &http.Client{Timeout: marketTimeout}
+		httpClient = &http.Client{Timeout: 10 * time.Second}
 	}
 	return &MarketOpenServiceImpl{
-		repo:           repo,
-		httpClient:     httpClient,
-		finnhubToken:   finnhubToken,
-		quoteService:   quoteService,
-		dailyService:   dailyService,
-		notifier:       notifier,
-		log:            log,
-		requestTimeout: marketTimeout,
-		maxRetries:     fetchRetries,
-		retryDelay:     retryBackoff,
+		repo:         repo,
+		httpClient:   httpClient,
+		finnhubToken: finnhubToken,
+		quoteService: quoteService,
+		dailyService: dailyService,
+		notifier:     notifier,
+		log:          log,
 	}
 }
 
@@ -161,26 +149,18 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 		default:
 		}
 
-		status, err := s.fetchMarketStatusWithRetry(ctx)
+		status, err := s.fetchMarketStatus()
 		if err != nil {
 			if s.log != nil {
 				s.log.Errorf("fetchMarketStatus failed: %v", err)
 			}
-			if shouldStopForDay(time.Now()) {
-				return
-			}
-			sleepContext(ctx, pollInterval)
-			continue
+			return
 		}
 		if status == nil {
 			if s.log != nil {
 				s.log.Warnf("fetchMarketStatus returned nil status")
 			}
-			if shouldStopForDay(time.Now()) {
-				return
-			}
-			sleepContext(ctx, pollInterval)
-			continue
+			return
 		}
 
 		session := strings.ToLower(strings.TrimSpace(status.session()))
@@ -278,40 +258,8 @@ func (r *finnhubMarketStatusResponse) isOpen() bool {
 	return r.IsOpen
 }
 
-func (s *MarketOpenServiceImpl) fetchMarketStatusWithRetry(ctx context.Context) (*finnhubMarketStatusResponse, error) {
-	attempts := s.maxRetries
-	if attempts < 1 {
-		attempts = 1
-	}
-
-	var lastErr error
-	for i := 1; i <= attempts; i++ {
-		status, err := s.fetchMarketStatus(ctx)
-		if err == nil {
-			return status, nil
-		}
-		lastErr = err
-		if i < attempts {
-			if s.log != nil {
-				s.log.Warnf("fetchMarketStatus attempt %d/%d failed: %v", i, attempts, err)
-			}
-			if !waitContext(ctx, s.retryDelay) {
-				return nil, ctx.Err()
-			}
-		}
-	}
-	return nil, lastErr
-}
-
-func (s *MarketOpenServiceImpl) fetchMarketStatus(ctx context.Context) (*finnhubMarketStatusResponse, error) {
-	requestCtx := ctx
-	cancel := func() {}
-	if s.requestTimeout > 0 {
-		requestCtx, cancel = context.WithTimeout(ctx, s.requestTimeout)
-	}
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, marketStatusURL, nil)
+func (s *MarketOpenServiceImpl) fetchMarketStatus() (*finnhubMarketStatusResponse, error) {
+	req, err := http.NewRequest(http.MethodGet, marketStatusURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -445,20 +393,6 @@ func sleepContext(ctx context.Context, d time.Duration) {
 	}
 }
 
-func waitContext(ctx context.Context, d time.Duration) bool {
-	if d <= 0 {
-		return true
-	}
-	timer := time.NewTimer(d)
-	defer timer.Stop()
-	select {
-	case <-ctx.Done():
-		return false
-	case <-timer.C:
-		return true
-	}
-}
-
 func getEnvString(key, fallback string) string {
 	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
 		return v
@@ -473,18 +407,6 @@ func getEnvInt(key string, fallback int) int {
 	}
 	n, err := strconv.Atoi(raw)
 	if err != nil || n < 0 {
-		return fallback
-	}
-	return n
-}
-
-func getEnvPositiveInt(key string, fallback int) int {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return fallback
-	}
-	n, err := strconv.Atoi(raw)
-	if err != nil || n <= 0 {
 		return fallback
 	}
 	return n
