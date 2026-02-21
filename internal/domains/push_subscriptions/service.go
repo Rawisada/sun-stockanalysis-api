@@ -174,8 +174,7 @@ func (s *PushSubscriptionServiceImpl) Notify(event *models.AlertEvent, message s
 		return
 	}
 
-	s.logPayload("Stock Alert", payload)
-	s.logSendResult("Stock Alert", s.sendToSubscriptions(payload))
+	s.sendToSubscriptions("Stock Alert", payload)
 }
 
 func (s *PushSubscriptionServiceImpl) NotifyCompanyNewsReady(message string) {
@@ -186,8 +185,7 @@ func (s *PushSubscriptionServiceImpl) NotifyCompanyNewsReady(message string) {
 	if err != nil {
 		return
 	}
-	s.logPayload("Company News", payload)
-	s.logSendResult("Company News", s.sendToSubscriptions(payload))
+	s.sendToSubscriptions("Company News", payload)
 }
 
 func (s *PushSubscriptionServiceImpl) NotifyMarketOpen(message string) {
@@ -198,8 +196,7 @@ func (s *PushSubscriptionServiceImpl) NotifyMarketOpen(message string) {
 	if err != nil {
 		return
 	}
-	s.logPayload("Market Open", payload)
-	s.logSendResult("Market Open", s.sendToSubscriptions(payload))
+	s.sendToSubscriptions("Market Open", payload)
 }
 
 func (s *PushSubscriptionServiceImpl) NotifyMarketClose(message string) {
@@ -210,8 +207,7 @@ func (s *PushSubscriptionServiceImpl) NotifyMarketClose(message string) {
 	if err != nil {
 		return
 	}
-	s.logPayload("Market Close", payload)
-	s.logSendResult("Market Close", s.sendToSubscriptions(payload))
+	s.sendToSubscriptions("Market Close", payload)
 }
 
 func (s *PushSubscriptionServiceImpl) StartSimulation(ctx context.Context, interval time.Duration, message string) {
@@ -240,8 +236,7 @@ func (s *PushSubscriptionServiceImpl) StartSimulation(ctx context.Context, inter
 					log.Printf("push simulation payload build failed err=%v", err)
 					continue
 				}
-				s.logPayload("Simulation", payload)
-				s.logSendResult("Simulation", s.sendToSubscriptions(payload))
+				s.sendToSubscriptions("Simulation", payload)
 			}
 		}
 	}()
@@ -270,14 +265,16 @@ type pushSendResult struct {
 	err     error
 }
 
-func (s *PushSubscriptionServiceImpl) sendToSubscriptions(payload []byte) pushSendResult {
+func (s *PushSubscriptionServiceImpl) sendToSubscriptions(title string, payload []byte) pushSendResult {
 	result := pushSendResult{}
 	subscriptions, err := s.subRepo.ListActive()
 	if err != nil {
 		result.err = err
+		log.Printf("push notify result title=%s err=%v", title, result.err)
 		return result
 	}
 	if len(subscriptions) == 0 {
+		log.Printf("push notify result title=%s total=0 message=no_active_subscriptions", title)
 		return result
 	}
 
@@ -330,18 +327,6 @@ func (s *PushSubscriptionServiceImpl) sendToSubscriptions(payload []byte) pushSe
 		}
 		result.success++
 	}
-	return result
-}
-
-func (s *PushSubscriptionServiceImpl) logSendResult(title string, result pushSendResult) {
-	if result.err != nil {
-		log.Printf("push notify result title=%s err=%v", title, result.err)
-		return
-	}
-	if result.total == 0 {
-		log.Printf("push notify result title=%s total=0 message=no_active_subscriptions", title)
-		return
-	}
 	log.Printf(
 		"push notify result title=%s total=%d success=%d failed=%d removed=%d forbidden=%d",
 		title,
@@ -351,10 +336,7 @@ func (s *PushSubscriptionServiceImpl) logSendResult(title string, result pushSen
 		result.removed,
 		result.forbidden,
 	)
-}
-
-func (s *PushSubscriptionServiceImpl) logPayload(title string, payload []byte) {
-	log.Printf("push notify payload title=%s payload=%s", title, string(payload))
+	return result
 }
 
 func maskKey(v string) string {
