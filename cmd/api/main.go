@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -104,9 +105,16 @@ func main() {
 		30,
 		30,
 	)
-	marketOpenService.Start(context.Background())
-	companyNewsService.Start(context.Background())
-	cleanupService.Start(context.Background())
+	appCtx := context.Background()
+	marketOpenService.Start(appCtx)
+	companyNewsService.Start(appCtx)
+	cleanupService.Start(appCtx)
+	if getEnvBool("PUSH_SIMULATION_ENABLED", false) {
+		interval := time.Duration(getEnvInt("PUSH_SIMULATION_INTERVAL_SECONDS", 60)) * time.Second
+		message := getEnvString("PUSH_SIMULATION_MESSAGE", "Test push notification every 1 minute")
+		pushSubscriptionService.StartSimulation(appCtx, interval, message)
+		logg.Infof("push simulation enabled interval=%s", interval)
+	}
 
 	healthController := controllers.NewHealthController(healthRepo, "1.0.0")
 	appControllers := controllers.NewControllers(
@@ -145,4 +153,28 @@ func getEnvString(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		return fallback
+	}
+	return n
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(raw)
+	if err != nil {
+		return fallback
+	}
+	return parsed
 }

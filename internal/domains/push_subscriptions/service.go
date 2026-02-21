@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/google/uuid"
@@ -32,6 +34,7 @@ type PushSubscriptionService interface {
 	NotifyCompanyNewsReady(message string)
 	NotifyMarketOpen(message string)
 	NotifyMarketClose(message string)
+	StartSimulation(ctx context.Context, interval time.Duration, message string)
 }
 
 type PushSubscriptionServiceImpl struct {
@@ -154,7 +157,7 @@ func (s *PushSubscriptionServiceImpl) Notify(event *models.AlertEvent, message s
 		return
 	}
 
-	s.sendToSubscriptions(payload)
+	s.logSendResult("Stock Alert", s.sendToSubscriptions(payload))
 }
 
 func (s *PushSubscriptionServiceImpl) NotifyCompanyNewsReady(message string) {
@@ -165,7 +168,7 @@ func (s *PushSubscriptionServiceImpl) NotifyCompanyNewsReady(message string) {
 	if err != nil {
 		return
 	}
-	s.sendToSubscriptions(payload)
+	s.logSendResult("Company News", s.sendToSubscriptions(payload))
 }
 
 func (s *PushSubscriptionServiceImpl) NotifyMarketOpen(message string) {
@@ -176,7 +179,7 @@ func (s *PushSubscriptionServiceImpl) NotifyMarketOpen(message string) {
 	if err != nil {
 		return
 	}
-	s.sendToSubscriptions(payload)
+	s.logSendResult("Market Open", s.sendToSubscriptions(payload))
 }
 
 func (s *PushSubscriptionServiceImpl) NotifyMarketClose(message string) {
@@ -187,7 +190,39 @@ func (s *PushSubscriptionServiceImpl) NotifyMarketClose(message string) {
 	if err != nil {
 		return
 	}
-	s.sendToSubscriptions(payload)
+	s.logSendResult("Market Close", s.sendToSubscriptions(payload))
+}
+
+func (s *PushSubscriptionServiceImpl) StartSimulation(ctx context.Context, interval time.Duration, message string) {
+	if interval <= 0 {
+		interval = time.Minute
+	}
+	msg := strings.TrimSpace(message)
+	if msg == "" {
+		msg = "Simulation push notification"
+	}
+
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+
+		log.Printf("push simulation started interval=%s", interval)
+		for {
+			select {
+			case <-ctx.Done():
+				log.Printf("push simulation stopped: %v", ctx.Err())
+				return
+			case <-ticker.C:
+				timestampedMessage := fmt.Sprintf("%s (%s)", msg, time.Now().Format(time.RFC3339))
+				payload, err := s.buildPopupPayload("Simulation", nil, timestampedMessage)
+				if err != nil {
+					log.Printf("push simulation payload build failed err=%v", err)
+					continue
+				}
+				s.logSendResult("Simulation", s.sendToSubscriptions(payload))
+			}
+		}
+	}()
 }
 
 func (s *PushSubscriptionServiceImpl) buildPopupPayload(title string, event *models.AlertEvent, message string) ([]byte, error) {
@@ -204,12 +239,26 @@ func (s *PushSubscriptionServiceImpl) buildPopupPayload(title string, event *mod
 	})
 }
 
-func (s *PushSubscriptionServiceImpl) sendToSubscriptions(payload []byte) {
+type pushSendResult struct {
+	total   int
+	success int
+	failed  int
+	removed int
+	err     error
+}
+
+func (s *PushSubscriptionServiceImpl) sendToSubscriptions(payload []byte) pushSendResult {
+	result := pushSendResult{}
 	subscriptions, err := s.subRepo.ListActive()
-	if err != nil || len(subscriptions) == 0 {
-		return
+	if err != nil {
+		result.err = err
+		return result
+	}
+	if len(subscriptions) == 0 {
+		return result
 	}
 
+	result.total = len(subscriptions)
 	for _, sub := range subscriptions {
 		resp, sendErr := webpush.SendNotification(payload, &webpush.Subscription{
 			Endpoint: sub.Endpoint,
@@ -227,12 +276,36 @@ func (s *PushSubscriptionServiceImpl) sendToSubscriptions(payload []byte) {
 			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone {
 				_ = s.subRepo.DeleteByEndpoint(sub.Endpoint)
+				result.removed++
 			}
 		}
 		if sendErr != nil {
 			log.Printf("push notify failed endpoint=%s err=%v", sub.Endpoint, sendErr)
+			result.failed++
+			continue
 		}
+		result.success++
 	}
+	return result
+}
+
+func (s *PushSubscriptionServiceImpl) logSendResult(title string, result pushSendResult) {
+	if result.err != nil {
+		log.Printf("push notify result title=%s err=%v", title, result.err)
+		return
+	}
+	if result.total == 0 {
+		log.Printf("push notify result title=%s total=0 message=no_active_subscriptions", title)
+		return
+	}
+	log.Printf(
+		"push notify result title=%s total=%d success=%d failed=%d removed=%d",
+		title,
+		result.total,
+		result.success,
+		result.failed,
+		result.removed,
+	)
 }
 
 func (s *PushSubscriptionServiceImpl) ensureVAPIDKeys() error {
