@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -55,7 +56,7 @@ func NewPushSubscriptionService(
 
 	service := &PushSubscriptionServiceImpl{
 		subRepo:      subRepo,
-		subject:      "mailto:admin@example.com",
+		subject:      "admin@example.com",
 		triggerScore: 4,
 	}
 
@@ -73,6 +74,7 @@ func NewPushSubscriptionService(
 	if err := service.ensureVAPIDKeys(); err != nil {
 		return nil, err
 	}
+	service.subject = normalizeWebPushSubject(service.subject)
 
 	return service, nil
 }
@@ -294,9 +296,16 @@ func (s *PushSubscriptionServiceImpl) sendToSubscriptions(payload []byte) pushSe
 			TTL:             30,
 		})
 		statusCode := 0
+		responseBody := ""
 		if resp != nil {
 			statusCode = resp.StatusCode
+			body, readErr := io.ReadAll(resp.Body)
 			_ = resp.Body.Close()
+			if readErr != nil {
+				log.Printf("push notify response read failed endpoint=%s status=%d err=%v", sub.Endpoint, statusCode, readErr)
+			} else {
+				responseBody = strings.TrimSpace(string(body))
+			}
 			if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone {
 				_ = s.subRepo.DeleteByEndpoint(sub.Endpoint)
 				result.removed++
@@ -307,7 +316,7 @@ func (s *PushSubscriptionServiceImpl) sendToSubscriptions(payload []byte) pushSe
 		}
 		if sendErr != nil {
 			if statusCode > 0 {
-				log.Printf("push notify failed endpoint=%s status=%d err=%v", sub.Endpoint, statusCode, sendErr)
+				log.Printf("push notify failed endpoint=%s status=%d reason=%q err=%v", sub.Endpoint, statusCode, responseBody, sendErr)
 			} else {
 				log.Printf("push notify failed endpoint=%s err=%v", sub.Endpoint, sendErr)
 			}
@@ -315,7 +324,7 @@ func (s *PushSubscriptionServiceImpl) sendToSubscriptions(payload []byte) pushSe
 			continue
 		}
 		if statusCode > 0 && (statusCode < http.StatusOK || statusCode >= http.StatusMultipleChoices) {
-			log.Printf("push notify non-2xx endpoint=%s status=%d", sub.Endpoint, statusCode)
+			log.Printf("push notify non-2xx endpoint=%s status=%d reason=%q", sub.Endpoint, statusCode, responseBody)
 			result.failed++
 			continue
 		}
@@ -353,6 +362,16 @@ func maskKey(v string) string {
 		return v
 	}
 	return v[:6] + "..." + v[len(v)-4:]
+}
+
+func normalizeWebPushSubject(subject string) string {
+	s := strings.TrimSpace(subject)
+	s = strings.TrimPrefix(s, "mailto:")
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "admin@example.com"
+	}
+	return s
 }
 
 func (s *PushSubscriptionServiceImpl) ensureVAPIDKeys() error {
