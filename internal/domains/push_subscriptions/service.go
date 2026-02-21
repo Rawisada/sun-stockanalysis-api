@@ -112,13 +112,28 @@ func (s *PushSubscriptionServiceImpl) Save(ctx context.Context, userID string, i
 		return errors.New("subscription keys are required")
 	}
 
+	endpoint := strings.TrimSpace(input.Endpoint)
+	p256dhKey := strings.TrimSpace(input.P256DHKey)
+	authKey := strings.TrimSpace(input.AuthKey)
+	deviceID := strings.TrimSpace(input.DeviceID)
+	userAgent := strings.TrimSpace(input.UserAgent)
+	log.Printf(
+		"push subscription upsert request user_id=%s device_id=%s endpoint=%s p256dh=%s auth=%s user_agent=%q",
+		userUUID.String(),
+		deviceID,
+		endpoint,
+		maskKey(p256dhKey),
+		maskKey(authKey),
+		userAgent,
+	)
+
 	return s.subRepo.Upsert(&models.PushSubscription{
 		UserID:    userUUID,
-		DeviceID:  strings.TrimSpace(input.DeviceID),
-		Endpoint:  strings.TrimSpace(input.Endpoint),
-		P256DHKey: strings.TrimSpace(input.P256DHKey),
-		AuthKey:   strings.TrimSpace(input.AuthKey),
-		UserAgent: strings.TrimSpace(input.UserAgent),
+		DeviceID:  deviceID,
+		Endpoint:  endpoint,
+		P256DHKey: p256dhKey,
+		AuthKey:   authKey,
+		UserAgent: userAgent,
 		IsActive:  true,
 	})
 }
@@ -157,6 +172,7 @@ func (s *PushSubscriptionServiceImpl) Notify(event *models.AlertEvent, message s
 		return
 	}
 
+	s.logPayload("Stock Alert", payload)
 	s.logSendResult("Stock Alert", s.sendToSubscriptions(payload))
 }
 
@@ -168,6 +184,7 @@ func (s *PushSubscriptionServiceImpl) NotifyCompanyNewsReady(message string) {
 	if err != nil {
 		return
 	}
+	s.logPayload("Company News", payload)
 	s.logSendResult("Company News", s.sendToSubscriptions(payload))
 }
 
@@ -179,6 +196,7 @@ func (s *PushSubscriptionServiceImpl) NotifyMarketOpen(message string) {
 	if err != nil {
 		return
 	}
+	s.logPayload("Market Open", payload)
 	s.logSendResult("Market Open", s.sendToSubscriptions(payload))
 }
 
@@ -190,6 +208,7 @@ func (s *PushSubscriptionServiceImpl) NotifyMarketClose(message string) {
 	if err != nil {
 		return
 	}
+	s.logPayload("Market Close", payload)
 	s.logSendResult("Market Close", s.sendToSubscriptions(payload))
 }
 
@@ -219,6 +238,7 @@ func (s *PushSubscriptionServiceImpl) StartSimulation(ctx context.Context, inter
 					log.Printf("push simulation payload build failed err=%v", err)
 					continue
 				}
+				s.logPayload("Simulation", payload)
 				s.logSendResult("Simulation", s.sendToSubscriptions(payload))
 			}
 		}
@@ -244,6 +264,7 @@ type pushSendResult struct {
 	success int
 	failed  int
 	removed int
+	forbidden int
 	err     error
 }
 
@@ -272,15 +293,29 @@ func (s *PushSubscriptionServiceImpl) sendToSubscriptions(payload []byte) pushSe
 			VAPIDPrivateKey: s.vapidPrivate,
 			TTL:             30,
 		})
+		statusCode := 0
 		if resp != nil {
+			statusCode = resp.StatusCode
 			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone {
 				_ = s.subRepo.DeleteByEndpoint(sub.Endpoint)
 				result.removed++
 			}
 		}
+		if statusCode == http.StatusForbidden {
+			result.forbidden++
+		}
 		if sendErr != nil {
-			log.Printf("push notify failed endpoint=%s err=%v", sub.Endpoint, sendErr)
+			if statusCode > 0 {
+				log.Printf("push notify failed endpoint=%s status=%d err=%v", sub.Endpoint, statusCode, sendErr)
+			} else {
+				log.Printf("push notify failed endpoint=%s err=%v", sub.Endpoint, sendErr)
+			}
+			result.failed++
+			continue
+		}
+		if statusCode > 0 && (statusCode < http.StatusOK || statusCode >= http.StatusMultipleChoices) {
+			log.Printf("push notify non-2xx endpoint=%s status=%d", sub.Endpoint, statusCode)
 			result.failed++
 			continue
 		}
@@ -299,13 +334,25 @@ func (s *PushSubscriptionServiceImpl) logSendResult(title string, result pushSen
 		return
 	}
 	log.Printf(
-		"push notify result title=%s total=%d success=%d failed=%d removed=%d",
+		"push notify result title=%s total=%d success=%d failed=%d removed=%d forbidden=%d",
 		title,
 		result.total,
 		result.success,
 		result.failed,
 		result.removed,
+		result.forbidden,
 	)
+}
+
+func (s *PushSubscriptionServiceImpl) logPayload(title string, payload []byte) {
+	log.Printf("push notify payload title=%s payload=%s", title, string(payload))
+}
+
+func maskKey(v string) string {
+	if len(v) <= 10 {
+		return v
+	}
+	return v[:6] + "..." + v[len(v)-4:]
 }
 
 func (s *PushSubscriptionServiceImpl) ensureVAPIDKeys() error {
@@ -317,3 +364,5 @@ func (s *PushSubscriptionServiceImpl) ensureVAPIDKeys() error {
 	}
 	return nil
 }
+
+
