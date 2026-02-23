@@ -73,7 +73,7 @@ func main() {
 	}
 	alertNotifier := realtime.NewCompositeAlertNotifier(alertHub, pushSubscriptionService)
 	alertEventService := alert_events.NewAlertEventService(stockQuoteRepo, alertEventRepo, alertNotifier)
-	stockQuoteService := stock_quotes.NewStockQuoteService(stockRepo, stockQuoteRepo, alertEventService, stockQuoteHub, nil, cfg.Finnhub.Token)
+	stockQuoteService := stock_quotes.NewStockQuoteService(stockRepo, stockQuoteRepo, alertEventService, stockQuoteHub, nil, cfg.Finnhub.Token, logg)
 	stockQuoteController := controllers.NewStockQuoteController(stockQuoteService)
 	stockDailyRepo := repository.NewStockDailyRepository(db)
 	stockDailyService := stock_daily.NewStockDailyService(stockRepo, stockQuoteRepo, stockDailyRepo)

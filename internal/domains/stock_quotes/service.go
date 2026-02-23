@@ -21,6 +21,7 @@ import (
 	"sun-stockanalysis-api/internal/models"
 	"sun-stockanalysis-api/internal/realtime"
 	"sun-stockanalysis-api/internal/repository"
+	"sun-stockanalysis-api/pkg/logger"
 )
 
 const (
@@ -59,6 +60,7 @@ type StockQuoteServiceImpl struct {
 	finnhubToken  string
 	pollInterval  time.Duration
 	requestTimout time.Duration
+	log           *logger.Logger
 	mu            sync.Mutex
 	cancel        context.CancelFunc
 }
@@ -70,6 +72,7 @@ func NewStockQuoteService(
 	notifier realtime.StockQuoteNotifier,
 	httpClient HTTPClient,
 	finnhubToken string,
+	log *logger.Logger,
 ) StockQuoteService {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: quoteTimeout}
@@ -83,6 +86,7 @@ func NewStockQuoteService(
 		finnhubToken:  finnhubToken,
 		pollInterval:  quotePoll,
 		requestTimout: quoteTimeout,
+		log:           log,
 	}
 }
 
@@ -204,8 +208,19 @@ func (s *StockQuoteServiceImpl) fetchAndStoreAll(ctx context.Context) {
 			continue
 		}
 		prev, err := s.quoteRepo.FindLatestBySymbol(symbol)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			continue
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if s.log != nil {
+					s.log.Infof("stock quote: FindLatestBySymbol no previous record symbol=%s", symbol)
+				}
+			} else {
+				if s.log != nil {
+					s.log.Errorf("stock quote: FindLatestBySymbol failed symbol=%s err=%v", symbol, err)
+				}
+				continue
+			}
+		} else if s.log != nil {
+			s.log.Infof("stock quote: FindLatestBySymbol success symbol=%s", symbol)
 		}
 		ema20 := s.calculateEMA(quote.C, emaPeriod20, prev)
 		ema100 := s.calculateEMA(quote.C, emaPeriod100, prev)

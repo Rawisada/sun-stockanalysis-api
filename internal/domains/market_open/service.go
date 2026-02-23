@@ -147,10 +147,18 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 
 		status, err := s.fetchMarketStatus()
 		if err != nil {
-			return
+			if s.log != nil {
+				s.log.Errorf("market polling: fetchMarketStatus failed: %v", err)
+			}
+			sleepContext(ctx, pollInterval)
+			continue
 		}
 		if status == nil {
-			return
+			if s.log != nil {
+				s.log.Warnf("market polling: fetchMarketStatus returned nil status")
+			}
+			sleepContext(ctx, pollInterval)
+			continue
 		}
 
 		session := strings.ToLower(strings.TrimSpace(status.session()))
