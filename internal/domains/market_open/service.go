@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -24,6 +25,7 @@ import (
 const (
 	defaultMarketStatusURL = "https://finnhub.io/api/v1/stock/market-status?exchange=US"
 	defaultPollSeconds     = 60
+	defaultTimeoutSeconds  = 10
 	defaultStopHour        = 4
 	defaultStopMinute      = 30
 	defaultSchedulerHour   = 20
@@ -33,6 +35,7 @@ const (
 var (
 	marketStatusURL = getEnvString("MARKET_STATUS_URL", defaultMarketStatusURL)
 	pollInterval    = time.Duration(getEnvInt("MARKET_POLL_SECONDS", defaultPollSeconds)) * time.Second
+	requestTimeout  = time.Duration(getEnvInt("MARKET_TIMEOUT_SECONDS", defaultTimeoutSeconds)) * time.Second
 	stopHour        = getEnvInt("MARKET_STOP_HOUR", defaultStopHour)
 	stopMinute      = getEnvInt("MARKET_STOP_MINUTE", defaultStopMinute)
 	schedulerHour   = getEnvInt("MARKET_SCHEDULER_HOUR", defaultSchedulerHour)
@@ -82,7 +85,7 @@ func NewMarketOpenService(
 	log *logger.Logger,
 ) MarketOpenService {
 	if httpClient == nil {
-		httpClient = &http.Client{Timeout: 10 * time.Second}
+		httpClient = &http.Client{Timeout: requestTimeout}
 	}
 	return &MarketOpenServiceImpl{
 		repo:         repo,
@@ -133,6 +136,11 @@ func (s *MarketOpenServiceImpl) runScheduler(ctx context.Context) {
 func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 	quoteStarted := false
 	postHandled := false
+	defer func() {
+		if s.quoteService != nil {
+			s.quoteService.Stop()
+		}
+	}()
 
 	for {
 		if shouldStopForDay(time.Now()) {
@@ -145,10 +153,14 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 		default:
 		}
 
-		status, err := s.fetchMarketStatus()
+		status, err := s.fetchMarketStatus(ctx)
 		if err != nil {
 			if s.log != nil {
-				s.log.Errorf("market polling: fetchMarketStatus failed: %v", err)
+				if isTimeoutError(err) {
+					s.log.Warnf("market polling: fetchMarketStatus timeout: %v", err)
+				} else {
+					s.log.Errorf("market polling: fetchMarketStatus failed: %v", err)
+				}
 			}
 			sleepContext(ctx, pollInterval)
 			continue
@@ -179,11 +191,14 @@ func (s *MarketOpenServiceImpl) runDailyPolling(ctx context.Context) {
 			}
 			sleepContext(ctx, pollInterval)
 			continue
-		case session == "post-market" || (session == "regular" && !isOpen):
+		case !isOpen:
 			_ = s.updateCloseRecord(status)
+			if s.quoteService != nil {
+				s.quoteService.Stop()
+				quoteStarted = false
+			}
 			if s.quoteService != nil && !postHandled {
 				s.quoteService.RunOnce(ctx)
-				s.quoteService.Stop()
 				postHandled = true
 				if s.notifier != nil {
 					s.notifier.NotifyMarketClose("ตลาดปิดแล้ว")
@@ -253,8 +268,11 @@ func (r *finnhubMarketStatusResponse) isOpen() bool {
 	return r.IsOpen
 }
 
-func (s *MarketOpenServiceImpl) fetchMarketStatus() (*finnhubMarketStatusResponse, error) {
-	req, err := http.NewRequest(http.MethodGet, marketStatusURL, nil)
+func (s *MarketOpenServiceImpl) fetchMarketStatus(ctx context.Context) (*finnhubMarketStatusResponse, error) {
+	reqCtx, cancel := context.WithTimeout(ctx, requestTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, marketStatusURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -276,6 +294,17 @@ func (s *MarketOpenServiceImpl) fetchMarketStatus() (*finnhubMarketStatusRespons
 		return nil, err
 	}
 	return result, nil
+}
+
+func isTimeoutError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {
+		return true
+	}
+	var netErr net.Error
+	return errors.As(err, &netErr) && netErr.Timeout()
 }
 
 func (s *MarketOpenServiceImpl) ensureOpenRecord(status *finnhubMarketStatusResponse) error {

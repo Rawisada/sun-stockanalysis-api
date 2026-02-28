@@ -257,12 +257,13 @@ func (s *PushSubscriptionServiceImpl) buildPopupPayload(title string, event *mod
 }
 
 type pushSendResult struct {
-	total   int
-	success int
-	failed  int
-	removed int
+	total     int
+	success   int
+	failed    int
+	removed   int
 	forbidden int
-	err     error
+	err       error
+	reasons   []string
 }
 
 func (s *PushSubscriptionServiceImpl) sendToSubscriptions(title string, payload []byte) pushSendResult {
@@ -270,11 +271,11 @@ func (s *PushSubscriptionServiceImpl) sendToSubscriptions(title string, payload 
 	subscriptions, err := s.subRepo.ListActive()
 	if err != nil {
 		result.err = err
-		log.Printf("push notify result title=%s err=%v", title, result.err)
+		log.Printf("push notify fail title=%s reason=%q", title, err.Error())
 		return result
 	}
 	if len(subscriptions) == 0 {
-		log.Printf("push notify result title=%s total=0 message=no_active_subscriptions", title)
+		log.Printf("push notify fail title=%s reason=%q", title, "no active subscriptions")
 		return result
 	}
 
@@ -312,6 +313,7 @@ func (s *PushSubscriptionServiceImpl) sendToSubscriptions(title string, payload 
 			result.forbidden++
 		}
 		if sendErr != nil {
+			result.reasons = appendReason(result.reasons, pushFailReason(statusCode, responseBody, sendErr))
 			if statusCode > 0 {
 				log.Printf("push notify failed endpoint=%s status=%d reason=%q err=%v", sub.Endpoint, statusCode, responseBody, sendErr)
 			} else {
@@ -321,22 +323,49 @@ func (s *PushSubscriptionServiceImpl) sendToSubscriptions(title string, payload 
 			continue
 		}
 		if statusCode > 0 && (statusCode < http.StatusOK || statusCode >= http.StatusMultipleChoices) {
+			result.reasons = appendReason(result.reasons, pushFailReason(statusCode, responseBody, nil))
 			log.Printf("push notify non-2xx endpoint=%s status=%d reason=%q", sub.Endpoint, statusCode, responseBody)
 			result.failed++
 			continue
 		}
 		result.success++
 	}
-	log.Printf(
-		"push notify result title=%s total=%d success=%d failed=%d removed=%d forbidden=%d",
-		title,
-		result.total,
-		result.success,
-		result.failed,
-		result.removed,
-		result.forbidden,
-	)
+	if result.failed > 0 {
+		log.Printf("push notify fail title=%s reason=%q", title, strings.Join(result.reasons, "; "))
+		return result
+	}
+	log.Printf("push notify success title=%s", title)
 	return result
+}
+
+func pushFailReason(statusCode int, responseBody string, sendErr error) string {
+	if statusCode > 0 {
+		reason := strings.TrimSpace(responseBody)
+		if reason == "" {
+			reason = http.StatusText(statusCode)
+		}
+		if reason != "" {
+			return fmt.Sprintf("status=%d (%s)", statusCode, reason)
+		}
+		return fmt.Sprintf("status=%d", statusCode)
+	}
+	if sendErr != nil {
+		return sendErr.Error()
+	}
+	return "unknown error"
+}
+
+func appendReason(reasons []string, reason string) []string {
+	reason = strings.TrimSpace(reason)
+	if reason == "" {
+		return reasons
+	}
+	for _, existing := range reasons {
+		if existing == reason {
+			return reasons
+		}
+	}
+	return append(reasons, reason)
 }
 
 func maskKey(v string) string {
